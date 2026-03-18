@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Yumin System — Tools</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html { overflow:hidden; }
+        body {
+            background:#020812; color:#f9a8d4;
+            font-family:'Courier New',monospace;
+            display:flex; justify-content:center; align-items:center;
+            width:100vw; min-height:100vh; min-height:100dvh; overflow:hidden;
+        }
+        .main-frame {
+            position:relative; z-index:1;
+            width:100vw; max-width:400px;
+            height:100vh; height:100dvh; max-height:700px;
+            background:rgba(2,8,20,0.88);
+            border:1px solid rgba(244,114,182,0.35);
+            border-radius:14px; display:flex; flex-direction:column;
+            overflow:hidden;
+            box-shadow:0 0 40px rgba(244,114,182,0.1),0 0 80px rgba(244,114,182,0.04);
+        }
+        #frame-bg { position:absolute; inset:0; z-index:0; border-radius:14px; }
+        .corner { position:absolute; width:18px; height:18px; border-color:rgba(244,114,182,0.7); border-style:solid; z-index:10; }
+        .c-tl{top:8px;left:8px;border-width:2px 0 0 2px;border-radius:3px 0 0 0}
+        .c-tr{top:8px;right:8px;border-width:2px 2px 0 0;border-radius:0 3px 0 0}
+        .c-bl{bottom:8px;left:8px;border-width:0 0 2px 2px;border-radius:0 0 0 3px}
+        .c-br{bottom:8px;right:8px;border-width:0 2px 2px 0;border-radius:0 0 3px 0}
+        .scanline {
+            position:absolute; inset:0; pointer-events:none; z-index:9; border-radius:14px;
+            background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(244,114,182,0.012) 3px,rgba(244,114,182,0.012) 4px);
+        }
+
+        /* HEADER */
+        .header {
+            position:relative; z-index:2;
+            padding:14px 16px 10px;
+            display:flex; align-items:center; justify-content:space-between;
+            border-bottom:1px solid rgba(244,114,182,0.15); flex-shrink:0;
+        }
+        .back-btn {
+            width:42px; height:42px; border:1px solid rgba(244,114,182,0.35);
+            border-radius:7px; display:flex; align-items:center; justify-content:center;
+            cursor:pointer; color:#f9a8d4; font-size:22px; background:transparent; transition:all 0.2s;
+        }
+        .back-btn:hover { background:rgba(244,114,182,0.12); }
+        .hdr-mid { display:flex; flex-direction:column; align-items:center; gap:2px; }
+        .sys-title { font-size:20px; font-weight:bold; letter-spacing:4px; color:#fbcfe8; text-shadow:0 0 12px rgba(244,114,182,0.9); }
+        .sys-sub { font-size:10px; color:rgba(244,114,182,0.72); letter-spacing:2px; }
+
+        /* CONTENT */
+        .content {
+            position:relative; z-index:2;
+            flex:1; padding:18px 16px; display:flex; flex-direction:column; gap:14px; overflow-y:auto;
+        }
+        .content::-webkit-scrollbar{width:7px}
+        .content::-webkit-scrollbar-thumb{background:rgba(244,114,182,0.55);border-radius:4px}
+
+        /* CLOCK CARD */
+        .clock-card {
+            background:rgba(244,114,182,0.05); border:1px solid rgba(244,114,182,0.2);
+            border-radius:12px; padding:18px 20px;
+            display:flex; flex-direction:column; align-items:center; gap:4px;
+        }
+        .clock-time {
+            font-size:46px; font-weight:bold; color:#fbcfe8; letter-spacing:4px;
+            text-shadow:0 0 20px rgba(244,114,182,0.8);
+        }
+        .clock-date { font-size:13px; color:rgba(244,114,182,0.78); letter-spacing:1.5px; }
+
+        /* TOOL GRID */
+        .tool-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+        .tool-btn {
+            background:rgba(244,114,182,0.05); border:1px solid rgba(244,114,182,0.2);
+            border-radius:12px; padding:22px 12px;
+            display:flex; flex-direction:column; align-items:center; gap:10px;
+            cursor:pointer; transition:all 0.2s; color:#f9a8d4;
+        }
+        .tool-btn:hover {
+            background:rgba(244,114,182,0.12); border-color:rgba(244,114,182,0.45);
+            box-shadow:0 0 16px rgba(244,114,182,0.12);
+        }
+        .tool-icon { font-size:38px; }
+        .tool-label { font-size:12px; letter-spacing:2px; color:rgba(244,114,182,0.88); }
+
+        /* OVERLAY */
+        .popup-overlay {
+            position:absolute; inset:0; background:rgba(2,8,20,0.65);
+            z-index:20; display:none; align-items:center; justify-content:center;
+            backdrop-filter:blur(3px);
+        }
+        .popup-overlay.show { display:flex; }
+
+        /* POPUP BASE */
+        .popup {
+            background:rgba(4,12,28,0.97); border:1px solid rgba(244,114,182,0.35);
+            border-radius:14px; display:flex; flex-direction:column;
+            box-shadow:0 0 30px rgba(244,114,182,0.15);
+            animation:popIn 0.2s ease; overflow:hidden;
+        }
+        @keyframes popIn{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
+        .popup-header {
+            padding:13px 16px; display:flex; align-items:center; justify-content:space-between;
+            border-bottom:1px solid rgba(244,114,182,0.15); flex-shrink:0;
+        }
+        .popup-title { font-size:14px; letter-spacing:2px; color:#fbcfe8; }
+        .popup-close {
+            width:32px; height:32px; border:1px solid rgba(244,114,182,0.3); border-radius:6px;
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; color:#f9a8d4; font-size:15px; background:transparent; transition:all 0.2s;
+        }
+        .popup-close:hover{background:rgba(244,114,182,0.12);}
+
+        /* CALENDAR */
+        .cal-popup{width:368px;}
+        .cal-nav{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;}
+        .cal-nav-btn{
+            width:34px;height:34px;border:1px solid rgba(244,114,182,0.28);border-radius:7px;
+            display:flex;align-items:center;justify-content:center;
+            cursor:pointer;color:#f9a8d4;font-size:18px;background:transparent;transition:all 0.2s;
+        }
+        .cal-nav-btn:hover{background:rgba(244,114,182,0.12);}
+        .cal-month{font-size:14px;color:#fbcfe8;letter-spacing:2px;}
+        .cal-grid{padding:0 12px 16px;}
+        .cal-days-header{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px;}
+        .cal-day-name{text-align:center;font-size:11px;color:rgba(244,114,182,0.4);padding:4px 0;}
+        .cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+        .cal-day{
+            aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+            border-radius:7px;font-size:13px;cursor:pointer;transition:all 0.15s;
+            color:rgba(244,114,182,0.7);
+        }
+        .cal-day:hover{background:rgba(244,114,182,0.12);}
+        .cal-day.today{background:rgba(244,114,182,0.18);color:#fbcfe8;font-weight:bold;border:1px solid rgba(244,114,182,0.4);}
+        .cal-day.other-month{opacity:0.42;}
+        .cal-day.selected{background:rgba(244,114,182,0.22);color:#f9a8d4;border:1px solid rgba(244,114,182,0.4);}
+
+        /* PIN */
+        .pin-popup{width:300px;}
+        .pin-screen{display:flex;flex-direction:column;align-items:center;padding:22px 16px;gap:18px;}
+        .pin-title{font-size:12px;color:rgba(244,114,182,0.78);letter-spacing:2px;}
+        .pin-dots{display:flex;gap:14px;}
+        .pin-dot{width:15px;height:15px;border-radius:50%;border:2px solid rgba(244,114,182,0.4);background:transparent;transition:all 0.15s;}
+        .pin-dot.filled{background:#f9a8d4;border-color:#f9a8d4;}
+        .pin-dot.error{border-color:#ef4444;background:#ef4444;animation:shake 0.3s;}
+        @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+        .pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:230px;}
+        .pin-key{
+            height:56px;border:1px solid rgba(244,114,182,0.22);border-radius:10px;
+            display:flex;align-items:center;justify-content:center;
+            font-size:22px;font-weight:bold;color:#fbcfe8;
+            cursor:pointer;background:rgba(244,114,182,0.05);transition:all 0.15s;
+        }
+        .pin-key:hover{background:rgba(244,114,182,0.15);}
+        .pin-key:active{transform:scale(0.93);}
+        .pin-key.del{font-size:18px;color:rgba(244,114,182,0.6);}
+        .pin-key.empty{background:transparent;border-color:transparent;cursor:default;}
+
+        /* NOTEPAD */
+        .note-popup{width:375px;height:570px;}
+        .note-tabs{display:flex;gap:5px;padding:10px 14px 0;overflow-x:auto;flex-shrink:0;}
+        .note-tabs::-webkit-scrollbar{height:6px;}
+        .note-tabs::-webkit-scrollbar-thumb{background:rgba(244,114,182,0.55);border-radius:3px;}
+        .note-tab{
+            padding:6px 13px;border-radius:6px 6px 0 0;
+            border:1px solid rgba(244,114,182,0.18);border-bottom:none;
+            font-size:12px;color:rgba(244,114,182,0.72);cursor:pointer;
+            background:rgba(244,114,182,0.03);white-space:nowrap;transition:all 0.15s;
+        }
+        .note-tab.active{background:rgba(244,114,182,0.1);color:#fbcfe8;border-color:rgba(244,114,182,0.4);}
+        .note-tab-add{
+            padding:6px 11px;border-radius:6px 6px 0 0;
+            border:1px dashed rgba(244,114,182,0.18);border-bottom:none;
+            font-size:16px;color:rgba(244,114,182,0.62);cursor:pointer;background:transparent;
+        }
+        .note-body{flex:1;display:flex;flex-direction:column;margin:0 14px;border:1px solid rgba(244,114,182,0.2);border-radius:0 8px 8px 8px;overflow:hidden;}
+        .note-textarea{
+            flex:1;background:transparent;border:none;
+            color:#fce7f3;font-family:'Courier New',monospace;font-size:14px;
+            line-height:1.65;padding:14px;resize:none;outline:none;
+        }
+        .note-textarea::placeholder{color:rgba(244,114,182,0.2);}
+        .note-toolbar{
+            padding:9px 14px;border-top:1px solid rgba(244,114,182,0.12);
+            display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;
+        }
+        .note-info{font-size:11px;color:rgba(244,114,182,0.3);}
+        .note-save-btn{
+            padding:8px 18px;background:rgba(244,114,182,0.1);
+            border:1px solid rgba(244,114,182,0.3);border-radius:7px;
+            color:#f9a8d4;font-family:'Courier New',monospace;font-size:12px;
+            cursor:pointer;transition:all 0.2s;
+        }
+        .note-save-btn:hover{background:rgba(244,114,182,0.22);box-shadow:0 0 10px rgba(244,114,182,0.2);}
+        .note-del-btn{
+            padding:8px 12px;background:rgba(239,68,68,0.07);
+            border:1px solid rgba(239,68,68,0.2);border-radius:7px;
+            color:#fca5a5;font-size:14px;cursor:pointer;transition:all 0.2s;
+        }
+        .note-del-btn:hover{background:rgba(239,68,68,0.15);}
+        .note-saved{color:#4ade80;font-size:11px;animation:fadeIn 0.3s;}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+        /* CALCULATOR */
+        .calc-popup{width:340px;}
+        .calc-display{
+            padding:14px 18px;text-align:right;
+            background:rgba(244,114,182,0.03);border-bottom:1px solid rgba(244,114,182,0.1);
+        }
+        .calc-expr{font-size:12px;color:rgba(244,114,182,0.65);min-height:18px;word-break:break-all;}
+        .calc-result{font-size:38px;color:#fbcfe8;text-shadow:0 0 10px rgba(244,114,182,0.5);word-break:break-all;}
+        .calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px;}
+        .calc-key{
+            height:58px;border-radius:10px;border:1px solid rgba(244,114,182,0.18);
+            display:flex;align-items:center;justify-content:center;
+            font-size:19px;cursor:pointer;transition:all 0.15s;
+            background:rgba(244,114,182,0.05);color:#fbcfe8;font-weight:bold;
+        }
+        .calc-key:hover{background:rgba(244,114,182,0.15);}
+        .calc-key:active{transform:scale(0.92);}
+        .calc-key.op{color:#f9a8d4;}
+        .calc-key.eq{background:rgba(244,114,182,0.16);border-color:rgba(244,114,182,0.4);}
+        .calc-key.eq:hover{background:rgba(244,114,182,0.28);}
+        .calc-key.clr{color:#fca5a5;border-color:rgba(239,68,68,0.2);}
+        .calc-key.del-key{color:rgba(244,114,182,0.6);}
+
+        /* PHOTO ALBUM */
+        .album-popup{width:375px;height:570px;}
+        .album-toolbar{
+            padding:10px 14px;display:flex;align-items:center;justify-content:space-between;
+            border-bottom:1px solid rgba(244,114,182,0.12);flex-shrink:0;
+        }
+        .album-upload-btn{
+            padding:8px 16px;background:rgba(244,114,182,0.1);
+            border:1px solid rgba(244,114,182,0.3);border-radius:7px;
+            color:#f9a8d4;font-family:'Courier New',monospace;
+            font-size:12px;letter-spacing:1px;cursor:pointer;transition:all 0.2s;
+        }
+        .album-upload-btn:hover{background:rgba(244,114,182,0.2);}
+        .album-storage{font-size:11px;color:rgba(244,114,182,0.65);letter-spacing:1px;}
+        .album-grid{
+            flex:1;overflow-y:auto;padding:12px;
+            display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-content:start;
+        }
+        .album-grid::-webkit-scrollbar{width:7px;}
+        .album-grid::-webkit-scrollbar-thumb{background:rgba(244,114,182,0.55);border-radius:4px;}
+        .album-thumb{
+            position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;
+            border:1px solid rgba(244,114,182,0.15);cursor:pointer;transition:all 0.2s;
+        }
+        .album-thumb:hover{border-color:rgba(244,114,182,0.5);transform:scale(1.03);}
+        .album-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+        .album-thumb-del{
+            position:absolute;top:4px;right:4px;width:22px;height:22px;
+            background:rgba(2,8,20,0.85);border:1px solid rgba(239,68,68,0.4);
+            border-radius:5px;display:flex;align-items:center;justify-content:center;
+            color:#fca5a5;font-size:11px;cursor:pointer;opacity:0;transition:opacity 0.2s;
+        }
+        .album-thumb:hover .album-thumb-del{opacity:1;}
+        .album-empty{
+            grid-column:span 3;text-align:center;
+            color:rgba(244,114,182,0.25);font-size:12px;
+            padding:50px 0;line-height:2.2;letter-spacing:1px;
+        }
+        /* VIEWER */
+        .album-viewer{
+            position:absolute;inset:0;z-index:25;
+            background:rgba(2,8,20,0.97);
+            display:none;flex-direction:column;
+            animation:popIn 0.2s ease;border-radius:14px;
+        }
+        .album-viewer.show{display:flex;}
+        .album-viewer-header{
+            padding:13px 16px;display:flex;align-items:center;justify-content:space-between;
+            border-bottom:1px solid rgba(244,114,182,0.15);flex-shrink:0;
+        }
+        .album-viewer-info{display:flex;flex-direction:column;gap:2px;}
+        .album-viewer-name{font-size:13px;color:#fbcfe8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;}
+        .album-viewer-date{font-size:11px;color:rgba(244,114,182,0.65);}
+        .album-viewer-img-wrap{
+            flex:1;display:flex;align-items:center;justify-content:center;
+            padding:16px;overflow:hidden;
+        }
+        .album-viewer-img-wrap img{
+            max-width:100%;max-height:100%;border-radius:8px;object-fit:contain;
+            border:1px solid rgba(244,114,182,0.15);
+        }
+        .album-viewer-footer{
+            padding:12px 16px;display:flex;gap:8px;
+            border-top:1px solid rgba(244,114,182,0.12);flex-shrink:0;
+        }
+        .album-dl-btn{
+            flex:1;padding:11px;background:rgba(244,114,182,0.1);
+            border:1px solid rgba(244,114,182,0.3);border-radius:8px;
+            color:#f9a8d4;font-family:'Courier New',monospace;
+            font-size:13px;letter-spacing:1px;cursor:pointer;transition:all 0.2s;
+        }
+        .album-dl-btn:hover{background:rgba(244,114,182,0.2);}
+        .album-del-btn{
+            padding:11px 16px;background:rgba(239,68,68,0.07);
+            border:1px solid rgba(239,68,68,0.2);border-radius:8px;
+            color:#fca5a5;font-size:18px;cursor:pointer;transition:all 0.2s;
+        }
+        .album-del-btn:hover{background:rgba(239,68,68,0.15);}
+
+        /* THEME */
+        .theme-popup{width:300px;}
+        .theme-body{padding:24px 20px;display:flex;flex-direction:column;gap:20px;}
+        .theme-section-label{font-size:11px;letter-spacing:2px;color:rgba(244,114,182,0.4);text-align:center;}
+        .theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+        .theme-swatch{
+            display:flex;flex-direction:column;align-items:center;gap:8px;
+            cursor:pointer;padding:12px 6px;border-radius:10px;
+            border:1px solid transparent;transition:all 0.2s;
+        }
+        .theme-swatch.selected{border-color:rgba(255,255,255,0.35);background:rgba(255,255,255,0.06);}
+        .swatch-dot{width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);}
+        .swatch-dot.s-blue  {background:#7dd3fc;box-shadow:0 0 14px rgba(125,211,252,0.7);}
+        .swatch-dot.s-yellow{background:#fde047;box-shadow:0 0 14px rgba(253,224,71,0.7);}
+        .swatch-dot.s-green {background:#86efac;box-shadow:0 0 14px rgba(134,239,172,0.7);}
+        .swatch-dot.s-pink  {background:#f9a8d4;box-shadow:0 0 14px rgba(249,168,212,0.7);}
+        .swatch-label{font-size:10px;letter-spacing:1.5px;color:rgba(255,255,255,0.72);}
+        .theme-preview{
+            padding:16px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);
+            text-align:center;background:rgba(255,255,255,0.03);
+        }
+        .theme-preview-title{font-size:22px;font-weight:bold;letter-spacing:5px;margin-bottom:6px;transition:color 0.3s,text-shadow 0.3s;}
+        .theme-preview-sub{font-size:11px;letter-spacing:2px;opacity:0.72;transition:color 0.3s;}
+
+        /* CHANGELOG */
+        .cl-popup{width:370px;max-height:540px;}
+        .cl-body{padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;max-height:440px;}
+        .cl-body::-webkit-scrollbar{width:7px;}
+        .cl-body::-webkit-scrollbar-thumb{background:rgba(244,114,182,0.55);border-radius:4px;}
+        .cl-header{text-align:center;padding:8px 0 16px;border-bottom:1px solid rgba(244,114,182,0.12);}
+        .cl-app-name{font-size:20px;color:#fbcfe8;letter-spacing:3px;font-weight:bold;}
+        .cl-credits{font-size:14px;color:rgba(244,114,182,0.78);margin-top:8px;line-height:2.2;}
+        .cl-credits span{color:rgba(244,114,182,0.92);}
+        .cl-empty{text-align:center;color:rgba(244,114,182,0.55);font-size:12px;padding:24px 0;letter-spacing:1px;}
+    </style>
+</head>
+<body>
+
+<div class="main-frame">
+    <canvas id="frame-bg"></canvas>
+    <div class="corner c-tl"></div><div class="corner c-tr"></div>
+    <div class="corner c-bl"></div><div class="corner c-br"></div>
+    <div class="scanline"></div>
+
+    <!-- HEADER -->
+    <div class="header">
+        <button class="back-btn" onclick="goBack()">←</button>
+        <div class="hdr-mid">
+            <div class="sys-title">YUMIN SYSTEM</div>
+            <div class="sys-sub">TOOLS &amp; UTILITIES</div>
+        </div>
+        <div style="width:42px"></div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+        <!-- Row 1: Clock -->
+        <div class="clock-card">
+            <div class="clock-time" id="clock-time">00:00:00</div>
+            <div class="clock-date" id="clock-date">—</div>
+        </div>
+        <!-- Row 2 -->
+        <div class="tool-row">
+            <div class="tool-btn" onclick="openCalendar()">
+                <div class="tool-icon">📅</div>
+                <div class="tool-label">CALENDAR</div>
+            </div>
+            <div class="tool-btn" onclick="openNotepad()">
+                <div class="tool-icon">📝</div>
+                <div class="tool-label">NOTEPAD</div>
+            </div>
+        </div>
+        <!-- Row 3 -->
+        <div class="tool-row">
+            <div class="tool-btn" onclick="openCalc()">
+                <div class="tool-icon">🔢</div>
+                <div class="tool-label">CALCULATOR</div>
+            </div>
+            <div class="tool-btn" onclick="openAlbum()">
+                <div class="tool-icon">📷</div>
+                <div class="tool-label">PHOTO ALBUM</div>
+            </div>
+        </div>
+        <!-- Row 4 -->
+        <div class="tool-row">
+            <div class="tool-btn" onclick="openTheme()">
+                <div class="tool-icon">🎨</div>
+                <div class="tool-label">THEME</div>
+            </div>
+            <div class="tool-btn" onclick="openChangelog()">
+                <div class="tool-icon">📋</div>
+                <div class="tool-label">CHANGELOG</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== POPUP: CALENDAR ===== -->
+    <div class="popup-overlay" id="popup-cal">
+        <div class="popup cal-popup">
+            <div class="popup-header">
+                <span class="popup-title">📅 CALENDAR</span>
+                <button class="popup-close" onclick="closePopup('popup-cal')">✕</button>
+            </div>
+            <div class="cal-nav">
+                <button class="cal-nav-btn" onclick="calMove(-1)">‹</button>
+                <div class="cal-month" id="cal-month-label"></div>
+                <button class="cal-nav-btn" onclick="calMove(1)">›</button>
+            </div>
+            <div class="cal-grid">
+                <div class="cal-days-header">
+                    <div class="cal-day-name">อา</div><div class="cal-day-name">จ</div>
+                    <div class="cal-day-name">อ</div><div class="cal-day-name">พ</div>
+                    <div class="cal-day-name">พฤ</div><div class="cal-day-name">ศ</div>
+                    <div class="cal-day-name">ส</div>
+                </div>
+                <div class="cal-days" id="cal-days"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== POPUP: PIN ===== -->
+    <div class="popup-overlay" id="popup-pin">
+        <div class="popup pin-popup">
+            <div class="popup-header">
+                <span class="popup-title">🔒 ENTER PIN</span>
+                <button class="popup-close" onclick="closePopup('popup-pin')">✕</button>
+            </div>
+            <div class="pin-screen">
+                <div class="pin-title">กรอกรหัส 4 หลัก</div>
+                <div class="pin-dots">
+                    <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+                    <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+                </div>
+                <div class="pin-grid">
+                    <div class="pin-key" onclick="pinPress('1')">1</div>
+                    <div class="pin-key" onclick="pinPress('2')">2</div>
+                    <div class="pin-key" onclick="pinPress('3')">3</div>
+                    <div class="pin-key" onclick="pinPress('4')">4</div>
+                    <div class="pin-key" onclick="pinPress('5')">5</div>
+                    <div class="pin-key" onclick="pinPress('6')">6</div>
+                    <div class="pin-key" onclick="pinPress('7')">7</div>
+                    <div class="pin-key" onclick="pinPress('8')">8</div>
+                    <div class="pin-key" onclick="pinPress('9')">9</div>
+                    <div class="pin-key empty"></div>
+                    <div class="pin-key" onclick="pinPress('0')">0</div>
+                    <div class="pin-key del" onclick="pinDel()">⌫</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== POPUP: NOTEPAD ===== -->
+    <div class="popup-overlay" id="popup-note">
+        <div class="popup note-popup">
+            <div class="popup-header">
+                <span class="popup-title">📝 NOTEPAD</span>
+                <button class="popup-close" onclick="closePopup('popup-note')">✕</button>
+            </div>
+            <div style="display:flex;flex-direction:column;flex:1;overflow:hidden;padding-bottom:14px;">
+                <div class="note-tabs" id="note-tabs"></div>
+                <div class="note-body">
+                    <textarea class="note-textarea" id="note-textarea" placeholder="พิมพ์โน้ตได้เลยค่ะ..."></textarea>
+                    <div class="note-toolbar">
+                        <span class="note-info" id="note-info">0 ตัวอักษร</span>
+                        <div style="display:flex;gap:6px;align-items:center">
+                            <span id="note-saved-label"></span>
+                            <button class="note-del-btn" onclick="deleteNote()" title="ลบโน้ตนี้">🗑</button>
+                            <button class="note-save-btn" onclick="saveNote()">💾 บันทึก</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== POPUP: CALCULATOR ===== -->
+    <div class="popup-overlay" id="popup-calc">
+        <div class="popup calc-popup">
+            <div class="popup-header">
+                <span class="popup-title">🔢 CALCULATOR</span>
+                <button class="popup-close" onclick="closePopup('popup-calc')">✕</button>
+            </div>
+            <div class="calc-display">
+                <div class="calc-expr" id="calc-expr"></div>
+                <div class="calc-result" id="calc-result">0</div>
+            </div>
+            <div class="calc-grid">
+                <div class="calc-key clr" onclick="calcPress('C')">C</div>
+                <div class="calc-key op del-key" onclick="calcPress('DEL')">⌫</div>
+                <div class="calc-key op" onclick="calcPress('%')">%</div>
+                <div class="calc-key op" onclick="calcPress('/')">÷</div>
+                <div class="calc-key" onclick="calcPress('7')">7</div>
+                <div class="calc-key" onclick="calcPress('8')">8</div>
+                <div class="calc-key" onclick="calcPress('9')">9</div>
+                <div class="calc-key op" onclick="calcPress('*')">×</div>
+                <div class="calc-key" onclick="calcPress('4')">4</div>
+                <div class="calc-key" onclick="calcPress('5')">5</div>
+                <div class="calc-key" onclick="calcPress('6')">6</div>
+                <div class="calc-key op" onclick="calcPress('-')">−</div>
+                <div class="calc-key" onclick="calcPress('1')">1</div>
+                <div class="calc-key" onclick="calcPress('2')">2</div>
+                <div class="calc-key" onclick="calcPress('3')">3</div>
+                <div class="calc-key op" onclick="calcPress('+')">+</div>
+                <div class="calc-key" style="grid-column:span 2" onclick="calcPress('0')">0</div>
+                <div class="calc-key" onclick="calcPress('.')">.</div>
+                <div class="calc-key eq" onclick="calcPress('=')">=</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== POPUP: PHOTO ALBUM ===== -->
+    <div class="popup-overlay" id="popup-album">
+        <div class="popup album-popup">
+            <div class="popup-header">
+                <span class="popup-title">📷 PHOTO ALBUM</span>
+                <button class="popup-close" onclick="closePopup('popup-album')">✕</button>
+            </div>
+            <div class="album-toolbar">
+                <button class="album-upload-btn" onclick="document.getElementById('album-file-input').click()">＋ เพิ่มรูป</button>
+                <input type="file" id="album-file-input" accept="image/*" multiple style="display:none">
+                <span class="album-storage" id="album-storage">0 รูป</span>
+            </div>
+            <div class="album-grid" id="album-grid">
+                <div class="album-empty">ยังไม่มีรูปภาพค่ะ<br>กด + เพิ่มรูป เพื่อเริ่มต้น</div>
+            </div>
+            <!-- VIEWER (ซ้อนอยู่ใน popup) -->
+            <div class="album-viewer" id="album-viewer">
+                <div class="album-viewer-header">
+                    <div class="album-viewer-info">
+                        <div class="album-viewer-name" id="viewer-name"></div>
+                        <div class="album-viewer-date" id="viewer-date"></div>
+                    </div>
+                    <button class="popup-close" onclick="closeViewer()">✕</button>
+                </div>
+                <div class="album-viewer-img-wrap">
+                    <img id="viewer-img" src="" alt="">
+                </div>
+                <div class="album-viewer-footer">
+                    <button class="album-dl-btn" onclick="downloadPhoto()">⬇ ดาวน์โหลด</button>
+                    <button class="album-del-btn" onclick="deleteViewingPhoto()">🗑</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== POPUP: THEME ===== -->
+    <div class="popup-overlay" id="popup-theme">
+        <div class="popup theme-popup">
+            <div class="popup-header">
+                <span class="popup-title">🎨 THEME</span>
+                <button class="popup-close" onclick="closePopup('popup-theme')">✕</button>
+            </div>
+            <div class="theme-body">
+                <div class="theme-section-label">เลือกสีธีม</div>
+                <div class="theme-grid">
+                    <div class="theme-swatch" data-theme="blue" onclick="applyTheme('blue')">
+                        <div class="swatch-dot s-blue"></div>
+                        <div class="swatch-label">BLUE</div>
+                    </div>
+                    <div class="theme-swatch" data-theme="yellow" onclick="applyTheme('yellow')">
+                        <div class="swatch-dot s-yellow"></div>
+                        <div class="swatch-label">YELLOW</div>
+                    </div>
+                    <div class="theme-swatch" data-theme="green" onclick="applyTheme('green')">
+                        <div class="swatch-dot s-green"></div>
+                        <div class="swatch-label">GREEN</div>
+                    </div>
+                    <div class="theme-swatch" data-theme="pink" onclick="applyTheme('pink')">
+                        <div class="swatch-dot s-pink"></div>
+                        <div class="swatch-label">PINK</div>
+                    </div>
+                </div>
+                <div class="theme-preview">
+                    <div class="theme-preview-title" id="theme-preview-title">YUMIN</div>
+                    <div class="theme-preview-sub" id="theme-preview-sub">SYSTEM · ONLINE</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== POPUP: CHANGELOG ===== -->
+    <div class="popup-overlay" id="popup-changelog">
+        <div class="popup cl-popup">
+            <div class="popup-header">
+                <span class="popup-title">📋 CHANGELOG</span>
+                <button class="popup-close" onclick="closePopup('popup-changelog')">✕</button>
+            </div>
+            <div class="cl-body">
+                <div class="cl-header">
+                    <div class="cl-app-name">YUMIN SYSTEM</div>
+                    <div class="cl-credits">
+                        ผู้สร้าง: <span>Mia Claude Code</span><br>
+                        ผู้ออกแบบ: <span>Dome (DomeGeekArt)</span><br>
+                        AI ในระบบ: <span>Yumin</span>
+                    </div>
+                </div>
+                <div class="cl-empty">— ยังไม่มีบันทึกการอัพเดท —</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// ====== NAVIGATION ======
+function goBack() { window.location.href = 'yumin_system_v1.html'; }
+
+// ====== BACKGROUND ======
+const fb = document.getElementById('frame-bg');
+const fc = fb.getContext('2d');
+fb.width = 400; fb.height = 700;
+
+class Streak {
+    constructor() { this.spawn(); }
+    spawn() {
+        this.dir = Math.floor(Math.random()*4);
+        this.speed = 0.8 + Math.random()*1.5;
+        this.len = 60 + Math.random()*100;
+        this.alpha = 0.08 + Math.random()*0.15;
+        this.lw = 0.5 + Math.random()*0.9;
+        if(this.dir===0){this.x=-this.len;this.y=Math.random()*700;this.vx=this.speed;this.vy=0;}
+        else if(this.dir===1){this.x=Math.random()*400;this.y=-this.len;this.vx=0;this.vy=this.speed;}
+        else if(this.dir===2){this.x=-this.len;this.y=Math.random()*420;this.vx=this.speed;this.vy=this.speed*0.45;}
+        else{this.x=-this.len;this.y=280+Math.random()*420;this.vx=this.speed;this.vy=-this.speed*0.45;}
+    }
+    isOff(){return this.x>500||this.y>800||this.y<-200;}
+    update(){this.x+=this.vx;this.y+=this.vy;}
+    draw(ctx){
+        const st=this.len/this.speed,tx=this.x-this.vx*st,ty=this.y-this.vy*st;
+        const g=ctx.createLinearGradient(tx,ty,this.x,this.y);
+        g.addColorStop(0,'rgba(244,114,182,0)');
+        g.addColorStop(0.6,`rgba(249,168,212,${this.alpha*0.5})`);
+        g.addColorStop(1,`rgba(251,207,232,${this.alpha})`);
+        ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(this.x,this.y);
+        ctx.strokeStyle=g;ctx.lineWidth=this.lw;
+        ctx.shadowColor='rgba(244,114,182,0.5)';ctx.shadowBlur=5;ctx.stroke();ctx.shadowBlur=0;
+        ctx.beginPath();ctx.arc(this.x,this.y,this.lw*1.8,0,Math.PI*2);
+        ctx.fillStyle=`rgba(251,207,232,${this.alpha})`;ctx.fill();
+    }
+}
+class Orb {
+    constructor(){
+        this.x=40+Math.random()*320;this.y=70+Math.random()*560;
+        this.vx=(Math.random()-0.5)*0.6;this.vy=(Math.random()-0.5)*0.6;
+        this.r=25+Math.random()*35;this.phase=Math.random()*Math.PI*2;
+        this.ps=0.018+Math.random()*0.022;this.alpha=0.12+Math.random()*0.16;
+    }
+    update(){
+        this.x+=this.vx;this.y+=this.vy;this.phase+=this.ps;
+        if(this.x<0||this.x>400)this.vx*=-1;if(this.y<0||this.y>700)this.vy*=-1;
+    }
+    draw(ctx){
+        const r=this.r*(1+Math.sin(this.phase)*0.28);
+        const g=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,r);
+        g.addColorStop(0,`rgba(249,168,212,${this.alpha*0.9})`);
+        g.addColorStop(0.35,`rgba(244,114,182,${this.alpha*0.5})`);
+        g.addColorStop(1,'rgba(244,114,182,0)');
+        ctx.beginPath();ctx.arc(this.x,this.y,r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+    }
+}
+const streaks=Array.from({length:14},()=>new Streak());
+const orbs=Array.from({length:6},()=>new Orb());
+(function bgLoop(){
+    fc.fillStyle='rgba(2,8,20,0.18)';fc.fillRect(0,0,400,700);
+    for(let i=0;i<orbs.length;i++)for(let j=i+1;j<orbs.length;j++){
+        const dx=orbs[i].x-orbs[j].x,dy=orbs[i].y-orbs[j].y,d=Math.sqrt(dx*dx+dy*dy);
+        if(d<200){fc.beginPath();fc.moveTo(orbs[i].x,orbs[i].y);fc.lineTo(orbs[j].x,orbs[j].y);fc.strokeStyle=`rgba(244,114,182,${(1-d/200)*0.1})`;fc.lineWidth=0.6;fc.stroke();}
+    }
+    orbs.forEach(o=>{o.update();o.draw(fc);});
+    streaks.forEach((s,i)=>{s.update();s.draw(fc);if(s.isOff())streaks[i]=new Streak();});
+    requestAnimationFrame(bgLoop);
+})();
+
+// ====== CLOCK ======
+const DAYS=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+const MONTHS_S=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function updateClock(){
+    const n=new Date();
+    document.getElementById('clock-time').textContent=
+        `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;
+    document.getElementById('clock-date').textContent=
+        `วัน${DAYS[n.getDay()]}  ${n.getDate()} ${MONTHS_S[n.getMonth()]} ${n.getFullYear()+543}`;
+}
+setInterval(updateClock,1000); updateClock();
+
+// ====== POPUP ======
+function openPopup(id){document.getElementById(id).classList.add('show');}
+function closePopup(id){document.getElementById(id).classList.remove('show');}
+
+// ====== CALENDAR ======
+let calDate=new Date();
+const MONTHS_TH=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+function openCalendar(){renderCal();openPopup('popup-cal');}
+function calMove(d){calDate.setMonth(calDate.getMonth()+d);renderCal();}
+function renderCal(){
+    const now=new Date(),y=calDate.getFullYear(),mo=calDate.getMonth();
+    document.getElementById('cal-month-label').textContent=`${MONTHS_TH[mo]}  ${y+543}`;
+    const first=new Date(y,mo,1).getDay();
+    const dim=new Date(y,mo+1,0).getDate();
+    const prev=new Date(y,mo,0).getDate();
+    let h='';
+    for(let i=0;i<first;i++)h+=`<div class="cal-day other-month">${prev-first+1+i}</div>`;
+    for(let d=1;d<=dim;d++){
+        const t=d===now.getDate()&&mo===now.getMonth()&&y===now.getFullYear();
+        h+=`<div class="cal-day${t?' today':''}" onclick="calSelect(this)">${d}</div>`;
+    }
+    const rem=42-(first+dim);
+    for(let i=1;i<=rem;i++)h+=`<div class="cal-day other-month">${i}</div>`;
+    document.getElementById('cal-days').innerHTML=h;
+}
+function calSelect(el){
+    document.querySelectorAll('.cal-day.selected').forEach(e=>e.classList.remove('selected'));
+    el.classList.add('selected');
+}
+
+// ====== PIN ======
+const PIN_CODE='1551';
+let pinInput='',pinUnlocked=false;
+function openNotepad(){
+    pinInput='';updatePinDots();
+    pinUnlocked ? (renderNoteTabs(),loadNote(curNote),openPopup('popup-note')) : openPopup('popup-pin');
+}
+function updatePinDots(){
+    for(let i=0;i<4;i++){
+        const d=document.getElementById('pd'+i);
+        d.className='pin-dot'+(i<pinInput.length?' filled':'');
+    }
+}
+function pinPress(v){
+    if(!v||pinInput.length>=4)return;
+    pinInput+=v; updatePinDots();
+    if(pinInput.length===4){
+        if(pinInput===PIN_CODE){
+            pinUnlocked=true;
+            setTimeout(()=>{closePopup('popup-pin');renderNoteTabs();loadNote(curNote);openPopup('popup-note');},200);
+        } else {
+            for(let i=0;i<4;i++)document.getElementById('pd'+i).className='pin-dot error';
+            setTimeout(()=>{pinInput='';updatePinDots();},700);
+        }
+    }
+}
+function pinDel(){if(pinInput.length>0){pinInput=pinInput.slice(0,-1);updatePinDots();}}
+
+// ====== NOTEPAD ======
+let notes=JSON.parse(localStorage.getItem('yumin_notes')||'null')||[{title:'โน้ต 1',content:''}];
+let curNote=0;
+function renderNoteTabs(){
+    document.getElementById('note-tabs').innerHTML=
+        notes.map((n,i)=>`<div class="note-tab${i===curNote?' active':''}" onclick="loadNote(${i})">${n.title}</div>`).join('')+
+        `<div class="note-tab-add" onclick="addNote()">＋</div>`;
+}
+function loadNote(i){
+    if(notes[curNote])notes[curNote].content=document.getElementById('note-textarea').value;
+    curNote=i;
+    document.getElementById('note-textarea').value=notes[i].content;
+    updateNoteInfo(); renderNoteTabs();
+    document.getElementById('note-saved-label').textContent='';
+}
+function addNote(){
+    notes.push({title:`โน้ต ${notes.length+1}`,content:''});
+    loadNote(notes.length-1);
+}
+function saveNote(){
+    notes[curNote].content=document.getElementById('note-textarea').value;
+    localStorage.setItem('yumin_notes',JSON.stringify(notes));
+    const lbl=document.getElementById('note-saved-label');
+    lbl.className='note-saved'; lbl.textContent='✓ บันทึกแล้ว';
+    setTimeout(()=>lbl.textContent='',2000);
+}
+function deleteNote(){
+    if(notes.length===1){notes[0]={title:'โน้ต 1',content:''};loadNote(0);localStorage.setItem('yumin_notes',JSON.stringify(notes));return;}
+    notes.splice(curNote,1);
+    curNote=Math.max(0,curNote-1);
+    renderNoteTabs(); loadNote(curNote);
+    localStorage.setItem('yumin_notes',JSON.stringify(notes));
+}
+function updateNoteInfo(){
+    document.getElementById('note-info').textContent=`${document.getElementById('note-textarea').value.length} ตัวอักษร`;
+}
+document.getElementById('note-textarea').addEventListener('input',updateNoteInfo);
+
+// ====== CALCULATOR ======
+let calcExpr='',calcHasResult=false;
+function openCalc(){openPopup('popup-calc');}
+function calcPress(v){
+    const ops=['+','-','*','/','%'];
+    if(v==='C'){calcExpr='';calcHasResult=false;}
+    else if(v==='DEL'){calcExpr=calcExpr.slice(0,-1);}
+    else if(v==='='){
+        try{
+            let e=calcExpr.replace(/÷/g,'/').replace(/×/g,'*').replace(/−/g,'-');
+            const r=Function('"use strict";return('+e+')')();
+            const rStr=parseFloat(r.toFixed(10)).toString();
+            calcExpr=rStr; calcHasResult=true;
+        }catch{calcExpr='Error';calcHasResult=true;}
+    }
+    else{
+        if(calcHasResult&&!ops.includes(v)){calcExpr='';calcHasResult=false;}
+        calcExpr+=v;
+    }
+    const disp=calcExpr.replace(/\*/g,'×').replace(/\//g,'÷').replace(/-/g,'−');
+    document.getElementById('calc-expr').textContent='';
+    document.getElementById('calc-result').textContent=disp||'0';
+}
+
+// ====== CHANGELOG ======
+function openChangelog(){openPopup('popup-changelog');}
+
+// ====== THEME ======
+const THEMES = {
+    blue:   {r:125,g:211,b:252, r2:186,g2:230,b2:253, name:'BLUE'  },
+    yellow: {r:253,g:224,b:71,  r2:254,g2:240,b2:138, name:'YELLOW'},
+    green:  {r:134,g:239,b:172, r2:187,g2:247,b2:208, name:'GREEN' },
+    pink:   {r:249,g:168,b:212, r2:251,g2:207,b2:232, name:'PINK'  },
+};
+
+function applyTheme(name) {
+    const t = THEMES[name] || THEMES.pink;
+    const {r,g,b,r2,g2,b2} = t;
+    const h = `${r},${g},${b}`;
+    const h2 = `${r2},${g2},${b2}`;
+    const hex = `rgb(${r},${g},${b})`;
+    const hex2 = `rgb(${r2},${g2},${b2})`;
+
+    let s = document.getElementById('nari-theme');
+    if(!s){s=document.createElement('style');s.id='nari-theme';document.head.appendChild(s);}
+    s.textContent = `
+        .main-frame{border-color:rgba(${h},0.35)!important;box-shadow:0 0 40px rgba(${h},0.1),0 0 80px rgba(${h},0.04)!important;}
+        .corner{border-color:rgba(${h},0.7)!important;}
+        .sys-title{color:${hex2}!important;text-shadow:0 0 12px rgba(${h},0.9),0 0 24px rgba(${h},0.4)!important;}
+        .sys-sub{color:rgba(${h},0.45)!important;}
+        .clock-time{color:${hex2}!important;text-shadow:0 0 20px rgba(${h},0.8)!important;}
+        .clock-date{color:rgba(${h},0.55)!important;}
+        .clock-card{background:rgba(${h},0.05)!important;border-color:rgba(${h},0.2)!important;}
+        .tool-btn{background:rgba(${h},0.05)!important;border-color:rgba(${h},0.2)!important;color:rgba(${h},0.8)!important;}
+        .tool-btn:hover{background:rgba(${h},0.12)!important;border-color:rgba(${h},0.45)!important;box-shadow:0 0 16px rgba(${h},0.12)!important;}
+        .tool-label{color:rgba(${h},0.65)!important;}
+        .header{border-color:rgba(${h},0.15)!important;}
+        .back-btn{border-color:rgba(${h},0.35)!important;color:rgba(${h},0.8)!important;}
+        .popup{border-color:rgba(${h},0.35)!important;box-shadow:0 0 30px rgba(${h},0.15)!important;}
+        .popup-header{border-color:rgba(${h},0.15)!important;}
+        .popup-title{color:${hex2}!important;}
+        .popup-close{border-color:rgba(${h},0.3)!important;color:rgba(${h},0.8)!important;}
+        .cal-nav-btn{border-color:rgba(${h},0.28)!important;color:rgba(${h},0.8)!important;}
+        .cal-month{color:${hex2}!important;}
+        .cal-day{color:rgba(${h},0.7)!important;}
+        .cal-day.today{background:rgba(${h},0.18)!important;color:${hex2}!important;border-color:rgba(${h},0.4)!important;}
+        .pin-dot{border-color:rgba(${h},0.4)!important;}
+        .pin-dot.filled{background:${hex}!important;border-color:${hex}!important;}
+        .pin-key{border-color:rgba(${h},0.22)!important;background:rgba(${h},0.05)!important;color:${hex2}!important;}
+        .note-tab{border-color:rgba(${h},0.18)!important;color:rgba(${h},0.45)!important;}
+        .note-tab.active{background:rgba(${h},0.1)!important;color:${hex2}!important;border-color:rgba(${h},0.4)!important;}
+        .note-body{border-color:rgba(${h},0.2)!important;}
+        .note-save-btn{background:rgba(${h},0.1)!important;border-color:rgba(${h},0.3)!important;color:rgba(${h},0.9)!important;}
+        .calc-key{background:rgba(${h},0.05)!important;border-color:rgba(${h},0.18)!important;color:${hex2}!important;}
+        .calc-key.eq{background:rgba(${h},0.16)!important;border-color:rgba(${h},0.4)!important;}
+        .calc-result{color:${hex2}!important;text-shadow:0 0 10px rgba(${h},0.5)!important;}
+        .nav-btn{border-color:rgba(${h},0.35)!important;color:rgba(${h},0.8)!important;}
+        .model-select{background:rgba(${h},0.07)!important;border-color:rgba(${h},0.28)!important;color:${hex}!important;}
+        .chat-input{background:rgba(${h},0.05)!important;border-color:rgba(${h},0.22)!important;}
+        .chat-input:focus{border-color:rgba(${h},0.55)!important;}
+        .send-btn{background:rgba(${h},0.1)!important;border-color:rgba(${h},0.3)!important;color:rgba(${h},0.9)!important;}
+        .attach-btn{background:rgba(${h},0.07)!important;border-color:rgba(${h},0.25)!important;color:rgba(${h},0.9)!important;}
+        .chat-sel-btn{background:rgba(${h},0.07)!important;border-color:rgba(${h},0.22)!important;color:rgba(${h},0.8)!important;}
+        .msg-user{background:rgba(${h},0.1)!important;border-color:rgba(${h},0.22)!important;}
+        .msg-user .msg-label{color:rgba(${h},0.7)!important;}
+        .h-divider{background:linear-gradient(to right,transparent,rgba(${h},0.18),transparent)!important;}
+        #waveform-canvas{border-color:rgba(${h},0.18)!important;}
+        .status-text{color:rgba(${h},0.45)!important;}
+        .chat-list-title{color:${hex2}!important;}
+        .chat-list-close{border-color:rgba(${h},0.3)!important;color:rgba(${h},0.9)!important;}
+        .chat-item{border-color:rgba(${h},0.18)!important;}
+        .chat-item:hover{background:rgba(${h},0.1)!important;border-color:rgba(${h},0.35)!important;}
+        .chat-item-name{color:${hex2}!important;}
+        .new-chat-btn{border-color:rgba(${h},0.3)!important;color:rgba(${h},0.9)!important;}
+        .album-upload-btn{background:rgba(${h},0.1)!important;border-color:rgba(${h},0.3)!important;color:rgba(${h},0.9)!important;}
+        .album-thumb{border-color:rgba(${h},0.15)!important;}
+        .album-thumb:hover{border-color:rgba(${h},0.5)!important;}
+        .album-dl-btn{background:rgba(${h},0.1)!important;border-color:rgba(${h},0.3)!important;color:rgba(${h},0.9)!important;}
+        .enter-btn{background:rgba(${h},0.1)!important;border-color:rgba(${h},0.35)!important;color:${hex2}!important;}
+        .key-input{background:rgba(${h},0.05)!important;border-color:rgba(${h},0.25)!important;}
+        .key-input:focus{border-color:rgba(${h},0.6)!important;}
+        .welcome-text{color:rgba(${h},0.6)!important;}
+    `;
+
+    localStorage.setItem('nari_theme', name);
+    document.querySelectorAll('.theme-swatch').forEach(el=>{
+        el.classList.toggle('selected', el.dataset.theme===name);
+    });
+    const pt = document.getElementById('theme-preview-title');
+    const ps = document.getElementById('theme-preview-sub');
+    if(pt){ pt.style.color=hex2; pt.style.textShadow=`0 0 14px rgba(${h},0.8)`; }
+    if(ps){ ps.style.color=`rgba(${h},0.5)`; }
+}
+
+function openTheme(){ openPopup('popup-theme'); applyTheme(localStorage.getItem('nari_theme')||'pink'); }
+
+// โหลดธีมตอนเปิดหน้า
+(function loadTheme(){
+    const saved = localStorage.getItem('nari_theme');
+    if(saved && THEMES[saved]) applyTheme(saved);
+    else applyTheme('pink');
+})();
+
+// ====== PHOTO ALBUM ======
+let photos = JSON.parse(localStorage.getItem('yumin_photos') || '[]');
+let viewingIdx = null;
+
+function openAlbum(){ renderAlbum(); openPopup('popup-album'); }
+
+function renderAlbum(){
+    const grid = document.getElementById('album-grid');
+    const info = document.getElementById('album-storage');
+    const totalBytes = Math.round(photos.reduce((s,p)=>s+p.data.length,0)*3/4/1024);
+    info.textContent = `${photos.length} รูป · ~${totalBytes} KB`;
+    if(photos.length===0){
+        grid.innerHTML='<div class="album-empty">ยังไม่มีรูปภาพค่ะ<br>กด + เพิ่มรูป เพื่อเริ่มต้น</div>';
+        return;
+    }
+    grid.innerHTML=photos.map((p,i)=>`
+        <div class="album-thumb" onclick="viewPhoto(${i})">
+            <img src="${p.data}" alt="${p.name}">
+            <div class="album-thumb-del" onclick="deletePhoto(${i},event)">✕</div>
+        </div>`).join('');
+}
+
+document.getElementById('album-file-input').addEventListener('change', function(e){
+    const files = Array.from(e.target.files);
+    if(!files.length) return;
+    let done = 0;
+    files.forEach(file=>{
+        const reader = new FileReader();
+        reader.onload = ev=>{
+            const img = new Image();
+            img.onload = ()=>{
+                const canvas = document.createElement('canvas');
+                const max = 900;
+                let w=img.width, h=img.height;
+                if(w>max||h>max){
+                    if(w>h){h=Math.round(h*max/w);w=max;}
+                    else{w=Math.round(w*max/h);h=max;}
+                }
+                canvas.width=w; canvas.height=h;
+                canvas.getContext('2d').drawImage(img,0,0,w,h);
+                const data = canvas.toDataURL('image/jpeg', 0.78);
+                photos.push({
+                    name: file.name,
+                    data,
+                    date: new Date().toLocaleDateString('th-TH')
+                });
+                if(++done===files.length){ savePhotos(); renderAlbum(); }
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+    e.target.value='';
+});
+
+function savePhotos(){
+    try{ localStorage.setItem('yumin_photos', JSON.stringify(photos)); }
+    catch(e){ alert('⚠ พื้นที่จัดเก็บเต็มแล้วค่ะ กรุณาลบรูปบางส่วนก่อนนะคะ'); }
+}
+
+function deletePhoto(i, e){
+    e.stopPropagation();
+    photos.splice(i,1);
+    savePhotos(); renderAlbum();
+}
+
+function viewPhoto(i){
+    viewingIdx = i;
+    const p = photos[i];
+    document.getElementById('viewer-img').src = p.data;
+    document.getElementById('viewer-name').textContent = p.name;
+    document.getElementById('viewer-date').textContent = p.date;
+    document.getElementById('album-viewer').classList.add('show');
+}
+
+function closeViewer(){
+    viewingIdx = null;
+    document.getElementById('album-viewer').classList.remove('show');
+}
+
+function downloadPhoto(){
+    if(viewingIdx===null) return;
+    const a = document.createElement('a');
+    a.href = photos[viewingIdx].data;
+    a.download = photos[viewingIdx].name || 'photo.jpg';
+    a.click();
+}
+
+function deleteViewingPhoto(){
+    if(viewingIdx===null) return;
+    photos.splice(viewingIdx,1);
+    savePhotos();
+    closeViewer();
+    renderAlbum();
+}
+</script>
+</body>
+</html>

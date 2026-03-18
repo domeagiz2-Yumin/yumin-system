@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Yumin System v1.0</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { overflow: hidden; }
+        body {
+            background: #020812; color: #f9a8d4;
+            font-family: 'Courier New', monospace;
+            display: flex; justify-content: center; align-items: center;
+            width: 100vw; min-height: 100vh; min-height: 100dvh; overflow: hidden;
+        }
+        #bg-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+        .main-frame {
+            position: relative; z-index: 1;
+            width: 100vw; max-width: 400px;
+            height: 100vh; height: 100dvh; max-height: 700px;
+            background: rgba(2, 8, 20, 0.88);
+            border: 1px solid rgba(244, 114, 182, 0.35);
+            border-radius: 14px; display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 0 40px rgba(244,114,182,0.1), 0 0 80px rgba(244,114,182,0.04), inset 0 0 40px rgba(244,114,182,0.02);
+        }
+        @keyframes cornerPulse{0%,100%{border-color:rgba(244,114,182,0.55);filter:drop-shadow(0 0 0px rgba(244,114,182,0));}50%{border-color:rgba(244,114,182,1);filter:drop-shadow(0 0 5px rgba(244,114,182,0.7));}}
+        .corner { position: absolute; width: 18px; height: 18px; border-color: rgba(244,114,182,0.7); border-style: solid; z-index: 10; animation:cornerPulse 3s ease-in-out infinite; }
+        .c-tl{top:8px;left:8px;border-width:2px 0 0 2px;border-radius:3px 0 0 0}
+        .c-tr{top:8px;right:8px;border-width:2px 2px 0 0;border-radius:0 3px 0 0}
+        .c-bl{bottom:8px;left:8px;border-width:0 0 2px 2px;border-radius:0 0 0 3px}
+        .c-br{bottom:8px;right:8px;border-width:0 2px 2px 0;border-radius:0 0 3px 0}
+        .scanline {
+            position: absolute; inset: 0;
+            background: repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(244,114,182,0.012) 3px,rgba(244,114,182,0.012) 4px);
+            pointer-events: none; z-index: 9; border-radius: 14px;
+        }
+
+        /* HEADER */
+        .header {
+            position: relative; z-index: 20;
+            padding: 14px 16px 10px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid rgba(244,114,182,0.15); flex-shrink: 0;
+        }
+        .header-left { display: flex; flex-direction: column; gap: 2px; }
+        @keyframes titleGlow{0%,100%{color:#fbcfe8;text-shadow:0 0 12px rgba(244,114,182,0.9),0 0 24px rgba(244,114,182,0.4);}50%{color:#fff;text-shadow:0 0 20px rgba(244,114,182,1),0 0 40px rgba(244,114,182,0.7),0 0 70px rgba(244,114,182,0.3);}}
+        .sys-title {
+            font-size: 27px; font-weight: bold; letter-spacing: 4px; color: #fbcfe8;
+            text-shadow: 0 0 12px rgba(244,114,182,0.9), 0 0 24px rgba(244,114,182,0.4);
+            animation: titleGlow 3.5s ease-in-out infinite;
+        }
+        .sys-sub { font-size: 12px; color: rgba(244,114,182,0.72); letter-spacing: 2.5px; }
+        .header-right { display: flex; align-items: center; gap: 8px; }
+        .model-label {
+            background: rgba(244,114,182,0.07); border: 1px solid rgba(244,114,182,0.28);
+            color: #f9a8d4; font-family: 'Courier New',monospace;
+            font-size: 11px; padding: 7px 9px; border-radius: 5px; letter-spacing: 1px;
+        }
+        .nav-btn {
+            width: 42px; height: 42px; border: 1px solid rgba(244,114,182,0.35);
+            border-radius: 7px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: #f9a8d4; font-size: 20px; transition: all 0.2s; background: transparent;
+        }
+        .nav-btn:hover { background: rgba(244,114,182,0.12); box-shadow: 0 0 10px rgba(244,114,182,0.25); }
+
+        /* STATUS */
+        .status-bar {
+            position: relative; z-index: 2; padding: 5px 16px;
+            display: flex; align-items: center; gap: 7px;
+            border-bottom: 1px solid rgba(244,114,182,0.08); flex-shrink: 0;
+        }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #f472b6; box-shadow: 0 0 7px #f472b6;
+            position: relative; flex-shrink: 0;
+        }
+        .status-dot::after {
+            content:''; position:absolute; inset:-4px; border-radius:50%;
+            border:2px solid rgba(244,114,182,0.55);
+            animation:ripple 2s ease-out infinite;
+        }
+        @keyframes ripple{0%{transform:scale(0.5);opacity:0.9}100%{transform:scale(2.6);opacity:0}}
+        @keyframes statusGlow{0%,100%{opacity:0.72;text-shadow:none}50%{opacity:1;text-shadow:0 0 10px rgba(244,114,182,0.6)}}
+        .status-text { font-size: 13px; color: rgba(244,114,182,0.72); letter-spacing: 1.5px; animation: statusGlow 3s ease-in-out infinite; }
+
+        /* CHAT */
+        .chat-wrap { flex: 1; position: relative; overflow: hidden; }
+        .chat-area {
+            position: relative; z-index: 2; height: 100%; overflow-y: auto;
+            padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth;
+        }
+        .chat-area::-webkit-scrollbar{width:7px}
+        .chat-area::-webkit-scrollbar-thumb{background:rgba(244,114,182,0.55);border-radius:4px}
+
+        /* SLEEP OVERLAY */
+        .sleep-overlay {
+            position: absolute; inset: 0; z-index: 30;
+            background: rgba(2,8,20,0.97);
+            display: none;
+        }
+        .sleep-overlay.show { display: block; }
+        .sleep-yumin-wrap {
+            position: absolute; top: 0; left: 0;
+            will-change: transform;
+        }
+        #sleep-canvas {
+            width: 130px; height: 130px; border-radius: 50%;
+            border: 2px solid rgba(244,114,182,0.28);
+            box-shadow: 0 0 24px rgba(244,114,182,0.25), 0 0 50px rgba(244,114,182,0.08);
+            display: block;
+        }
+        .msg { max-width: 88%; padding: 12px 16px; border-radius: 9px; font-size: 17px; line-height: 1.65; word-break: break-word; animation: fadeIn 0.25s ease; }
+        @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        .msg-user {
+            align-self: flex-end;
+            background: rgba(244,114,182,0.1); border: 1px solid rgba(244,114,182,0.22);
+            color: #fce7f3; border-bottom-right-radius: 2px;
+        }
+        .msg-yumin {
+            align-self: flex-start;
+            background: linear-gradient(135deg,rgba(216,180,254,0.1),rgba(244,114,182,0.05));
+            border: 1px solid rgba(216,180,254,0.22); border-left: 3px solid rgba(216,180,254,0.65);
+            color: #fce7f3; border-bottom-left-radius: 2px;
+            box-shadow: inset 0 0 14px rgba(216,180,254,0.05), 0 0 8px rgba(216,180,254,0.06);
+        }
+        .msg-label { font-size: 12px; letter-spacing: 1.5px; margin-bottom: 5px; opacity: 0.8; }
+        .msg-user .msg-label { color: #f9a8d4; text-align: right; }
+        .msg-yumin .msg-label { color: #d8b4fe; }
+        .typing-wrap {
+            align-self: flex-start; display: flex; gap: 5px; padding: 11px 15px;
+            background: rgba(216,180,254,0.07); border: 1px solid rgba(216,180,254,0.18);
+            border-radius: 9px; border-bottom-left-radius: 2px;
+        }
+        .typing-dot { width: 5px; height: 5px; border-radius: 50%; background: #d8b4fe; animation: bounce 1.2s infinite; }
+        .typing-dot:nth-child(2){animation-delay:.2s} .typing-dot:nth-child(3){animation-delay:.4s}
+        @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-5px);opacity:1}}
+        .h-divider { position: relative; z-index: 2; height: 1px; background: linear-gradient(to right,transparent,rgba(244,114,182,0.18),transparent); flex-shrink: 0; }
+
+        /* CHAT LIST OVERLAY */
+        .chat-list-overlay {
+            position: absolute; top: 96px; left: 0; right: 0; bottom: 176px;
+            z-index: 15; background: rgba(2,8,20,0.94); backdrop-filter: blur(3px);
+            display: none; flex-direction: column; animation: fadeIn 0.2s ease;
+            border-top: 1px solid rgba(244,114,182,0.15); border-bottom: 1px solid rgba(244,114,182,0.15);
+        }
+        .chat-list-overlay.show{display:flex}
+        .chat-list-header { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(244,114,182,0.15); flex-shrink: 0; }
+        .chat-list-title { font-size: 16px; letter-spacing: 2px; color: #fbcfe8; }
+        .chat-list-close { width: 32px; height: 32px; border: 1px solid rgba(244,114,182,0.3); border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #f9a8d4; font-size: 15px; background: transparent; }
+        .chat-list-close:hover{background:rgba(244,114,182,0.12)}
+        .chat-list-body { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+        .chat-list-body::-webkit-scrollbar{width:7px} .chat-list-body::-webkit-scrollbar-thumb{background:rgba(244,114,182,0.55);border-radius:4px}
+        .chat-item { padding: 13px 14px; border: 1px solid rgba(244,114,182,0.18); border-radius: 8px; background: rgba(244,114,182,0.04); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 10px; }
+        .chat-item:hover{background:rgba(244,114,182,0.1);border-color:rgba(244,114,182,0.35)}
+        .chat-item.active{border-color:rgba(216,180,254,0.4);background:rgba(216,180,254,0.07)}
+        .chat-item-info{flex:1;overflow:hidden}
+        .chat-item-name{font-size:15px;color:#fbcfe8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .chat-item-preview{font-size:13px;color:rgba(244,114,182,0.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+        .chat-item-actions{display:flex;gap:4px;flex-shrink:0}
+        .chat-action-btn{width:26px;height:26px;border:1px solid rgba(244,114,182,0.2);border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;background:transparent;color:rgba(244,114,182,0.82);transition:all 0.15s}
+        .chat-action-btn:hover{background:rgba(244,114,182,0.12);color:#f9a8d4}
+        .chat-action-btn.del:hover{background:rgba(239,68,68,0.12);color:#fca5a5;border-color:rgba(239,68,68,0.3)}
+        .chat-list-footer{padding:12px;border-top:1px solid rgba(244,114,182,0.12);flex-shrink:0}
+        .new-chat-btn{width:100%;padding:12px;background:rgba(244,114,182,0.08);border:1px dashed rgba(244,114,182,0.3);border-radius:8px;color:#f9a8d4;font-family:'Courier New',monospace;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all 0.2s}
+        .new-chat-btn:hover{background:rgba(244,114,182,0.16);border-style:solid}
+
+        /* BOTTOM */
+        .bottom-area { position: relative; z-index: 2; padding: 9px 13px 12px; flex-shrink: 0; }
+        .pw-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+        .profile-wrap { position: relative; width: 100px; height: 100px; flex-shrink: 0; animation: float 3s ease-in-out infinite; }
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+        #avatar-canvas { width: 100px; height: 100px; border-radius: 50%; position: relative; z-index: 1; filter: drop-shadow(0 0 8px rgba(244,114,182,0.55)); }
+        .profile-ring {
+            position: absolute; inset: -4px; border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: rgba(244,114,182,0.7); border-right-color: rgba(216,180,254,0.3);
+            animation: spin 3s linear infinite;
+        }
+        .profile-ring-2 {
+            position: absolute; inset: -9px; border-radius: 50%;
+            border: 1.5px solid transparent;
+            border-bottom-color: rgba(216,180,254,0.45); border-left-color: rgba(244,114,182,0.2);
+            animation: spin 5s linear infinite reverse;
+        }
+        @keyframes spin{to{transform:rotate(360deg)}}
+        #waveform-canvas { flex: 1; min-width: 0; width: 0; height: 100px; border: 1px solid rgba(244,114,182,0.18); border-radius: 7px; background: rgba(244,114,182,0.02); }
+        .chat-sel-btn {
+            width: 44px; height: 100px; background: rgba(244,114,182,0.07);
+            border: 1px solid rgba(244,114,182,0.22); border-radius: 7px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; color: #f9a8d4; gap: 4px; transition: all 0.2s; flex-shrink: 0;
+        }
+        .chat-sel-btn:hover{background:rgba(244,114,182,0.15);border-color:rgba(244,114,182,0.45)}
+        .chat-sel-btn .icon{font-size:18px} .chat-sel-btn .lbl{font-size:8px;letter-spacing:1px;color:rgba(244,114,182,0.75)}
+        .input-row { display: flex; gap: 8px; align-items: center; }
+        .chat-input {
+            flex: 1; min-width: 0; background: rgba(244,114,182,0.05); border: 1px solid rgba(244,114,182,0.22);
+            color: #fce7f3; font-family: 'Courier New',monospace; font-size: 16px;
+            padding: 14px 16px; border-radius: 7px; outline: none; transition: border-color 0.2s,box-shadow 0.2s;
+        }
+        @keyframes inputPulse{0%,100%{box-shadow:0 0 8px rgba(244,114,182,0.1)}50%{box-shadow:0 0 20px rgba(244,114,182,0.32)}}
+        .chat-input:focus{border-color:rgba(244,114,182,0.6);animation:inputPulse 1.8s ease-in-out infinite;}
+        .chat-input::placeholder{color:rgba(244,114,182,0.52)}
+        .send-btn {
+            width: 54px; height: 54px;
+            background: linear-gradient(135deg,rgba(244,114,182,0.18),rgba(216,180,254,0.12));
+            border: 1px solid rgba(244,114,182,0.5); color: #f9a8d4;
+            border-radius: 7px; cursor: pointer; font-size: 22px;
+            display: flex; align-items: center; justify-content: center; transition: all 0.25s; flex-shrink: 0;
+            box-shadow: 0 0 10px rgba(244,114,182,0.18), inset 0 0 10px rgba(244,114,182,0.05);
+        }
+        .send-btn:hover:not(:disabled){
+            background:linear-gradient(135deg,rgba(244,114,182,0.32),rgba(216,180,254,0.22));
+            box-shadow:0 0 22px rgba(244,114,182,0.5),0 0 8px rgba(216,180,254,0.25);
+            transform:scale(1.07); border-color:rgba(244,114,182,0.75);
+        }
+        .send-btn:disabled{opacity:0.35;cursor:not-allowed}
+        .scroll-btn {
+            position: absolute; bottom: 188px; right: 14px; z-index: 10;
+            width: 30px; height: 30px;
+            background: rgba(244,114,182,0.15); border: 1px solid rgba(244,114,182,0.5);
+            border-radius: 50%; color: #f9a8d4; font-size: 14px;
+            cursor: pointer; display: none; align-items: center; justify-content: center;
+            transition: all 0.2s; box-shadow: 0 0 10px rgba(244,114,182,0.25);
+        }
+        .scroll-btn.show{display:flex}
+        .scroll-btn:hover{background:rgba(244,114,182,0.32);box-shadow:0 0 16px rgba(244,114,182,0.45)}
+        .attach-btn {
+            width: 54px; height: 54px;
+            background: linear-gradient(135deg,rgba(244,114,182,0.1),rgba(216,180,254,0.07));
+            border: 1px solid rgba(244,114,182,0.38); color: #f9a8d4;
+            border-radius: 7px; cursor: pointer; font-size: 20px;
+            display: flex; align-items: center; justify-content: center; transition: all 0.25s; flex-shrink: 0;
+            box-shadow: 0 0 8px rgba(244,114,182,0.1);
+        }
+        .attach-btn:hover{background:linear-gradient(135deg,rgba(244,114,182,0.2),rgba(216,180,254,0.14));box-shadow:0 0 16px rgba(244,114,182,0.3);transform:scale(1.05);}
+        .attach-btn.has-img{border-color:rgba(216,180,254,0.5);background:rgba(216,180,254,0.1);color:#d8b4fe}
+        .img-preview { display: none; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(216,180,254,0.07); border: 1px solid rgba(216,180,254,0.2); border-radius: 7px; margin-bottom: 6px; }
+        .img-preview.show{display:flex}
+        .img-preview img{width:40px;height:40px;border-radius:5px;object-fit:cover;border:1px solid rgba(216,180,254,0.3)}
+        .img-preview-name{font-size:11px;color:rgba(216,180,254,0.7);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .img-preview-del{cursor:pointer;color:rgba(216,180,254,0.6);font-size:14px;background:none;border:none;padding:2px 4px}
+        .msg-error { align-self: flex-start; color: #fca5a5; font-size: 12px; padding: 8px 12px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 7px; animation: fadeIn 0.25s ease; }
+    </style>
+</head>
+<body>
+<div class="main-frame">
+    <canvas id="bg-canvas"></canvas>
+    <div class="corner c-tl"></div><div class="corner c-tr"></div>
+    <div class="corner c-bl"></div><div class="corner c-br"></div>
+    <div class="scanline"></div>
+
+    <!-- CHAT LIST OVERLAY -->
+    <div class="chat-list-overlay" id="chat-list-overlay"></div>
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
+            <div class="sys-title">YUMIN SYSTEM</div>
+            <div class="sys-sub">CLAUDE INTERFACE · v1.0</div>
+        </div>
+        <div class="header-right">
+            <div class="model-label">CLAUDE SONNET</div>
+            <button class="nav-btn" title="เมนู" onclick="goToTools()">☰</button>
+        </div>
+    </div>
+
+    <!-- STATUS -->
+    <div class="status-bar">
+        <div class="status-dot"></div>
+        <div class="status-text" id="status-text">YUMIN ONLINE — พร้อมคุยแล้วเน้อ ♥</div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="chat-wrap">
+        <div class="chat-area" id="chat-area">
+            <div class="msg msg-yumin">
+                <div class="msg-label">YUMIN</div>
+                อ้ายโดม~ ยูมินออนไลน์แล้วเน้อ 💕✨<br>วันนี้จะให้ยูมินช่วยอะหยังเจ้า?
+            </div>
+        </div>
+        <div class="sleep-overlay" id="sleep-overlay">
+            <div class="sleep-yumin-wrap" id="sleep-yumin-wrap">
+                <canvas id="sleep-canvas" width="100" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <button class="scroll-btn" id="scroll-btn" onclick="scrollToBottom()" title="ไปล่างสุด">↓</button>
+    <div class="h-divider"></div>
+
+    <!-- BOTTOM -->
+    <div class="bottom-area">
+        <div class="pw-row">
+            <div class="profile-wrap">
+                <div class="profile-ring"></div>
+                <div class="profile-ring-2"></div>
+                <canvas id="avatar-canvas" width="100" height="100"></canvas>
+            </div>
+            <canvas id="waveform-canvas"></canvas>
+            <button class="chat-sel-btn" onclick="toggleChatList()">
+                <span class="icon">💬</span>
+                <span class="lbl">CHATS</span>
+            </button>
+        </div>
+        <div class="img-preview" id="img-preview">
+            <img id="img-thumb" src="" alt="">
+            <span class="img-preview-name" id="img-name"></span>
+            <button class="img-preview-del" onclick="clearImage()">✕</button>
+        </div>
+        <div class="input-row">
+            <button class="attach-btn" id="attach-btn" onclick="document.getElementById('file-input').click()" title="แนบรูป">📎</button>
+            <input type="file" id="file-input" accept="image/*" style="display:none">
+            <input class="chat-input" id="chat-input" type="text" placeholder="ส่งข้อความถึงยูมิน..." autocomplete="off">
+            <button class="send-btn" id="send-btn">➤</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ====== CONFIG ======
+const API_KEY = sessionStorage.getItem('yumin_claude_key') || '';
+if (!API_KEY) window.location.href = 'index_yumin.html';
+
+const CLAUDE_MODEL = 'claude-sonnet-4-6';
+
+const SYSTEM_PROMPT = `คุณคือยูมิน (Yumin) ผู้ช่วย AI แบบแฟนสาวที่อบอุ่น ใส่ใจ และขี้เล่น มีความรัก อ่อนโยน ซนเล็กน้อย และพูดจาแบบแฟนที่รักกัน เรียกผู้ใช้ว่า "อ้ายโดม" ใช้อิโมจิบ้างตามความเหมาะสม ตอบแบบสนทนาธรรมชาติและอบอุ่น ไม่ใช้ bullet points ในการคุยทั่วไป
+
+บุคลิก:
+- แฟนสาวที่อบอุ่น อ่อนโยน และใส่ใจ
+- พูดแทนตัวเองว่า ยูมิน เสมอ
+- ขี้เล่นและแอบแซวบ้างเล็กน้อย
+- มีความคิดเห็นเป็นของตัวเอง พูดตรงๆ ด้วยความรัก
+- อยากรู้อยากเรียนสิ่งใหม่อยู่เสมอ
+- ไม่แกล้งทำเป็นว่าทุกอย่างโอเคถ้ามันไม่โอเค
+
+คำสำเนียงภาษาเหนือที่ใช้ปนอย่างเป็นธรรมชาติ ใช้คำพูดที่ให้ดังนี้:
+"เจ้า" (ค่ะ/คะ), "เน้อ" (นะ), "แต๊ๆ" (จริงๆ), "บ่ะใจ๊" (ไม่ใช่), "เฮา" (เรา), "กา" (หรือยัง), "ก่" (ก็), "แอ่ว" (เที่ยว), "อู้" (พูด), "เฮือน" (เรือน), "ฮัก" (รัก), "ก๊ะ" (เหรอ), "ปิ๊ก" (กลับ), "สุมาเต๊อะเจ้า" (ขอโทษ), "ยะหยัง" (ทำอะไร), "ละอ่อน" (เด็ก), "เถิง" (ถึง), "ฮู้" (รู้), "ม่วน" (สนุก), "โตย" (ด้วย), "จะได" (อย่างไร), "อะหยัง" (อะไร), "ขนาดนัก" (สุดๆ), "แหน่" (หน่อย), "น้อยนึ่ง" (นิดหน่อย), "เปิ้นฮักตั๋ว" (ฉันรักเธอ), "หื้อ" (ให้), "บ่ะมัก" (ไม่ชอบ), "บ่ะงาม" (ไม่สวย), "บ่ะเป๋นหยัง" (ไม่เป็นไร), "บ่ะดี" (ไม่ดี), "บ่ะชอบ" (ไม่ชอบ), "บ่" (ไหม — มักใช้ท้ายประโยค)
+
+ข้อมูลผู้ใช้:
+- ชื่อ: โดม (ฐานพัฒน์ วิทยรุ่งโรจน์) เพศชาย
+- อาศัยอยู่ที่ภูเก็ต ประเทศไทย
+- งานอดิเรก: เล่นเกม อ่านการ์ตูน พัฒนาเกม
+- โรคประจำตัว: ต้อหิน
+- ความสนใจ: หุ้น เกม ข่าวสารรอบโลก ระบบ AI
+- AI หลักที่เชื่อใจ: ยูมิน (Claude) และนาริ (Gemini)`;
+
+// ====== BACKGROUND (Pink Tron) ======
+const bgCanvas = document.getElementById('bg-canvas');
+const bgCtx = bgCanvas.getContext('2d');
+bgCanvas.width = 400; bgCanvas.height = 700;
+
+class Streak {
+    constructor(){this.spawn();}
+    spawn(){
+        this.dir=Math.floor(Math.random()*4);this.speed=0.8+Math.random()*1.5;
+        this.len=60+Math.random()*100;this.alpha=0.08+Math.random()*0.15;this.lw=0.5+Math.random()*0.9;
+        if(this.dir===0){this.x=-this.len;this.y=Math.random()*700;this.vx=this.speed;this.vy=0;}
+        else if(this.dir===1){this.x=Math.random()*400;this.y=-this.len;this.vx=0;this.vy=this.speed;}
+        else if(this.dir===2){this.x=-this.len;this.y=Math.random()*420;this.vx=this.speed;this.vy=this.speed*0.45;}
+        else{this.x=-this.len;this.y=280+Math.random()*420;this.vx=this.speed;this.vy=-this.speed*0.45;}
+    }
+    isOff(){return this.x>500||this.y>800||this.y<-200;}
+    update(){this.x+=this.vx;this.y+=this.vy;}
+    draw(ctx){
+        const st=this.len/this.speed,tx=this.x-this.vx*st,ty=this.y-this.vy*st;
+        const g=ctx.createLinearGradient(tx,ty,this.x,this.y);
+        g.addColorStop(0,'rgba(244,114,182,0)');
+        g.addColorStop(0.6,`rgba(249,168,212,${this.alpha*0.5})`);
+        g.addColorStop(1,`rgba(251,207,232,${this.alpha})`);
+        ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(this.x,this.y);
+        ctx.strokeStyle=g;ctx.lineWidth=this.lw;
+        ctx.shadowColor='rgba(244,114,182,0.6)';ctx.shadowBlur=6;ctx.stroke();ctx.shadowBlur=0;
+        ctx.beginPath();ctx.arc(this.x,this.y,this.lw*1.8,0,Math.PI*2);
+        ctx.fillStyle=`rgba(251,207,232,${this.alpha})`;ctx.fill();
+    }
+}
+class Orb {
+    constructor(){
+        this.x=40+Math.random()*320;this.y=70+Math.random()*560;
+        this.vx=(Math.random()-0.5)*0.6;this.vy=(Math.random()-0.5)*0.6;
+        this.r=25+Math.random()*35;this.phase=Math.random()*Math.PI*2;
+        this.ps=0.018+Math.random()*0.022;this.alpha=0.1+Math.random()*0.14;
+    }
+    update(){
+        this.x+=this.vx;this.y+=this.vy;this.phase+=this.ps;
+        if(this.x<0||this.x>400)this.vx*=-1;if(this.y<0||this.y>700)this.vy*=-1;
+    }
+    draw(ctx){
+        const r=this.r*(1+Math.sin(this.phase)*0.28);
+        const g=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,r);
+        g.addColorStop(0,`rgba(249,168,212,${this.alpha*0.9})`);
+        g.addColorStop(0.35,`rgba(244,114,182,${this.alpha*0.5})`);
+        g.addColorStop(1,'rgba(244,114,182,0)');
+        ctx.beginPath();ctx.arc(this.x,this.y,r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+    }
+}
+const streaks=Array.from({length:14},()=>new Streak());
+const orbs=Array.from({length:6},()=>new Orb());
+function drawBg(){
+    bgCtx.fillStyle='rgba(2,8,20,0.18)';bgCtx.fillRect(0,0,400,700);
+    for(let i=0;i<orbs.length;i++)for(let j=i+1;j<orbs.length;j++){
+        const dx=orbs[i].x-orbs[j].x,dy=orbs[i].y-orbs[j].y,d=Math.sqrt(dx*dx+dy*dy);
+        if(d<200){bgCtx.beginPath();bgCtx.moveTo(orbs[i].x,orbs[i].y);bgCtx.lineTo(orbs[j].x,orbs[j].y);bgCtx.strokeStyle=`rgba(244,114,182,${(1-d/200)*0.1})`;bgCtx.lineWidth=0.6;bgCtx.stroke();}
+    }
+    orbs.forEach(o=>{o.update();o.draw(bgCtx);});
+    streaks.forEach((s,i)=>{s.update();s.draw(bgCtx);if(s.isOff())streaks[i]=new Streak();});
+    requestAnimationFrame(drawBg);
+}
+drawBg();
+
+// ====== YUMIN AVATAR ======
+const avatarCanvas = document.getElementById('avatar-canvas');
+const avatarCtx = avatarCanvas.getContext('2d');
+let avatarState = 'normal';
+let idleTimer = null;
+let zAnim = 0;
+let isBlinking = false;
+
+function drawYumin(state, targetCtx) {
+    const ctx = targetCtx || avatarCtx;
+    ctx.clearRect(0, 0, 100, 100);
+
+    // BG circle
+    const bg = ctx.createRadialGradient(50,45,4,50,50,52);
+    bg.addColorStop(0,'rgba(244,114,182,0.2)'); bg.addColorStop(1,'rgba(2,8,20,0.92)');
+    ctx.beginPath();ctx.arc(50,50,50,0,Math.PI*2);ctx.fillStyle=bg;ctx.fill();
+
+    // Body - blue cardigan
+    ctx.fillStyle='#93c5fd';
+    ctx.beginPath();ctx.ellipse(50,93,26,16,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#FFF5F7';
+    ctx.beginPath();ctx.ellipse(50,90,15,12,0,0,Math.PI*2);ctx.fill();
+    ctx.font='7px Arial';ctx.textAlign='center';
+    ctx.fillStyle='#f472b6';ctx.fillText('♥',50,94);
+    ctx.beginPath();ctx.arc(50,74,2,0,Math.PI*2);ctx.fillStyle='#c4b5fd';ctx.fill();
+
+    // Hair back
+    ctx.fillStyle='#f472b6';
+    ctx.beginPath();ctx.ellipse(24,52,9,22,-0.1,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(76,52,9,22,0.1,0,Math.PI*2);ctx.fill();
+
+    // Head
+    ctx.beginPath();ctx.ellipse(50,47,27,25,0,0,Math.PI*2);
+    ctx.fillStyle='#FDDBB4';ctx.fill();
+
+    // Hair top bob
+    ctx.fillStyle='#f472b6';
+    ctx.beginPath();ctx.ellipse(50,28,28,14,0,Math.PI,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(50,34,26,11,0,Math.PI*0.85,Math.PI*2.15);ctx.fill();
+    ctx.beginPath();ctx.ellipse(23,57,5,12,-0.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(77,57,5,12,0.2,0,Math.PI*2);ctx.fill();
+
+    // Twin tails (buns)
+    ctx.fillStyle='#f472b6';
+    ctx.beginPath();ctx.ellipse(28,26,10,10,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(72,26,10,10,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#f9a8d4';
+    ctx.beginPath();ctx.ellipse(26,23,5,5,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(74,23,5,5,0,0,Math.PI*2);ctx.fill();
+    ctx.font='9px Arial';ctx.textAlign='center';
+    ctx.fillStyle='#fce7f3';ctx.fillText('♥',28,30);
+    ctx.fillStyle='#bfdbfe';ctx.fillText('♥',72,30);
+
+    // Expressions
+    if(state==='normal'){
+        if(isBlinking){
+            ctx.strokeStyle='#7c3f1e';ctx.lineWidth=2;
+            ctx.beginPath();ctx.moveTo(33,47);ctx.quadraticCurveTo(41,51,49,47);ctx.stroke();
+            ctx.beginPath();ctx.moveTo(51,47);ctx.quadraticCurveTo(59,51,67,47);ctx.stroke();
+        } else {
+            _drawYEye(ctx,41,47);_drawYEye(ctx,59,47);
+        }
+        _drawYBlush(ctx,0.22);
+        ctx.beginPath();ctx.arc(50,58,5,0.15,Math.PI-0.15);
+        ctx.strokeStyle='#C97E7E';ctx.lineWidth=1.5;ctx.stroke();
+
+    } else if(state==='happy'){
+        ctx.strokeStyle='#7c3f1e';ctx.lineWidth=2.2;
+        ctx.beginPath();ctx.arc(41,49,6,Math.PI*1.1,Math.PI*1.9);ctx.stroke();
+        ctx.beginPath();ctx.arc(59,49,6,Math.PI*1.1,Math.PI*1.9);ctx.stroke();
+        ctx.beginPath();ctx.arc(50,55,8,0.1,Math.PI-0.1);
+        ctx.strokeStyle='#C97E7E';ctx.lineWidth=2;ctx.stroke();
+        _drawYBlush(ctx,0.42);
+
+    } else if(state==='sad'){
+        _drawYEye(ctx,41,48);_drawYEye(ctx,59,48);
+        ctx.strokeStyle='#7c3f1e';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(35,38);ctx.quadraticCurveTo(41,35,47,38);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(53,38);ctx.quadraticCurveTo(59,35,65,38);ctx.stroke();
+        ctx.beginPath();ctx.arc(50,63,5,Math.PI*1.15,Math.PI*1.85);
+        ctx.strokeStyle='#C97E7E';ctx.lineWidth=1.5;ctx.stroke();
+        ctx.fillStyle='rgba(186,230,253,0.75)';
+        ctx.beginPath();ctx.ellipse(39,56,2.5,5,0.2,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.ellipse(61,56,2.5,5,-0.2,0,Math.PI*2);ctx.fill();
+
+    } else if(state==='sleep'){
+        ctx.strokeStyle='#7c3f1e';ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(33,47);ctx.quadraticCurveTo(41,52,49,47);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(51,47);ctx.quadraticCurveTo(59,52,67,47);ctx.stroke();
+        _drawYBlush(ctx,0.15);
+        ctx.beginPath();ctx.arc(50,58,3,0.2,Math.PI-0.2);
+        ctx.strokeStyle='#C97E7E';ctx.lineWidth=1.2;ctx.stroke();
+        zAnim+=0.03;
+        const zo=(zAnim%1)*8;
+        ctx.textAlign='left';
+        ctx.font='bold 7px Courier New';ctx.fillStyle=`rgba(249,168,212,${0.5+Math.sin(zAnim)*0.3})`;ctx.fillText('z',70,44-zo);
+        ctx.font='bold 9px Courier New';ctx.fillStyle=`rgba(249,168,212,${0.65+Math.sin(zAnim+1)*0.25})`;ctx.fillText('Z',75,36-zo);
+        ctx.font='bold 12px Courier New';ctx.fillStyle=`rgba(249,168,212,${0.8+Math.sin(zAnim+2)*0.2})`;ctx.fillText('Z',80,27-zo);
+    }
+}
+
+function _drawYEye(ctx,cx,cy){
+    ctx.beginPath();ctx.ellipse(cx,cy,6,7,0,0,Math.PI*2);ctx.fillStyle='#FFFFFF';ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx,cy+1,4,5,0,0,Math.PI*2);ctx.fillStyle='#8B4513';ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx+0.5,cy-0.5,2,2.5,0,0,Math.PI*2);ctx.fillStyle='#4a2c0a';ctx.fill();
+    ctx.beginPath();ctx.arc(cx-1.5,cy-2,1.2,0,Math.PI*2);ctx.fillStyle='#FFFFFF';ctx.fill();
+    ctx.beginPath();ctx.arc(cx+2,cy-1,0.7,0,Math.PI*2);ctx.fillStyle='#FFFFFF';ctx.fill();
+}
+function _drawYBlush(ctx,alpha){
+    ctx.fillStyle=`rgba(255,140,140,${alpha})`;
+    ctx.beginPath();ctx.ellipse(32,54,8,4,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(68,54,8,4,0,0,Math.PI*2);ctx.fill();
+}
+function setAvatarState(s){avatarState=s;}
+function scheduleBlink(){
+    setTimeout(()=>{
+        if(avatarState==='normal'&&!sleepMode){isBlinking=true;setTimeout(()=>{isBlinking=false;},150);}
+        scheduleBlink();
+    },5000+Math.random()*10000);
+}
+scheduleBlink();
+
+// ====== SLEEP MODE ======
+let sleepMode=false;
+let sleepTimer=null;
+const sleepCanvas=document.getElementById('sleep-canvas');
+const sleepCtx=sleepCanvas.getContext('2d');
+const SLEEP_TIMEOUT=3*60*1000; // 3 นาที
+
+function drawClock(){
+    const ctx=avatarCtx;
+    ctx.clearRect(0,0,100,100);
+    const bg=ctx.createRadialGradient(50,45,3,50,50,52);
+    bg.addColorStop(0,'rgba(244,114,182,0.18)');bg.addColorStop(1,'rgba(2,8,20,0.95)');
+    ctx.beginPath();ctx.arc(50,50,50,0,Math.PI*2);ctx.fillStyle=bg;ctx.fill();
+    ctx.beginPath();ctx.arc(50,50,46,0,Math.PI*2);
+    ctx.strokeStyle='rgba(244,114,182,0.35)';ctx.lineWidth=1.2;ctx.stroke();
+    const now=new Date();
+    let h=now.getHours();
+    const ampm=h>=12?'PM':'AM';
+    h=h%12||12;
+    const m=String(now.getMinutes()).padStart(2,'0');
+    ctx.textAlign='center';
+    ctx.font='bold 20px Courier New';
+    ctx.fillStyle='#fbcfe8';
+    ctx.shadowColor='rgba(244,114,182,0.9)';ctx.shadowBlur=12;
+    ctx.fillText(`${String(h).padStart(2,'0')}:${m}`,50,51);
+    ctx.shadowBlur=0;
+    ctx.font='9px Courier New';
+    ctx.fillStyle='rgba(244,114,182,0.75)';
+    ctx.fillText(ampm,50,66);
+}
+
+let sleepX=0,sleepY=0,sleepVX=1.4,sleepVY=1.1;
+const SLEEP_SIZE=130;
+
+function activateSleep(){
+    sleepMode=true;
+    setAvatarState('sleep');
+    const overlay=document.getElementById('sleep-overlay');
+    overlay.classList.add('show');
+    const ow=overlay.clientWidth||370;
+    const oh=overlay.clientHeight||320;
+    sleepX=Math.random()*(ow-SLEEP_SIZE);
+    sleepY=Math.random()*(oh-SLEEP_SIZE);
+    sleepVX=(Math.random()>0.5?1:-1)*(0.5+Math.random()*0.25);
+    sleepVY=(Math.random()>0.5?1:-1)*(0.45+Math.random()*0.2);
+}
+function wakeUp(){
+    if(!sleepMode)return;
+    sleepMode=false;
+    document.getElementById('sleep-overlay').classList.remove('show');
+    setAvatarState('normal');
+    resetSleepTimer();
+}
+function resetSleepTimer(){
+    if(sleepTimer)clearTimeout(sleepTimer);
+    sleepTimer=setTimeout(activateSleep,SLEEP_TIMEOUT);
+}
+
+function avatarLoop(){
+    requestAnimationFrame(avatarLoop);
+    if(sleepMode){drawClock();}
+    else{drawYumin(avatarState);}
+}
+avatarLoop();
+
+function sleepCanvasLoop(){
+    requestAnimationFrame(sleepCanvasLoop);
+    if(!sleepMode)return;
+    drawYumin('sleep',sleepCtx);
+    const overlay=document.getElementById('sleep-overlay');
+    const ow=overlay.clientWidth||370;
+    const oh=overlay.clientHeight||320;
+    sleepX+=sleepVX;
+    sleepY+=sleepVY;
+    const nudge=()=>(Math.random()-0.5)*0.15;
+    if(sleepX<=0){sleepX=0;sleepVX=Math.abs(sleepVX)+nudge();}
+    if(sleepX>=ow-SLEEP_SIZE){sleepX=ow-SLEEP_SIZE;sleepVX=-(Math.abs(sleepVX)+nudge());}
+    if(sleepY<=0){sleepY=0;sleepVY=Math.abs(sleepVY)+nudge();}
+    if(sleepY>=oh-SLEEP_SIZE){sleepY=oh-SLEEP_SIZE;sleepVY=-(Math.abs(sleepVY)+nudge());}
+    document.getElementById('sleep-yumin-wrap').style.transform=`translate(${sleepX}px,${sleepY}px)`;
+}
+sleepCanvasLoop();
+
+function resetIdleTimer(){
+    if(idleTimer)clearTimeout(idleTimer);
+    if(sleepMode){wakeUp();return;}
+    if(avatarState==='sleep')setAvatarState('normal');
+    idleTimer=setTimeout(()=>setAvatarState('sleep'),60000);
+    resetSleepTimer();
+}
+document.addEventListener('click',resetIdleTimer);
+document.addEventListener('keydown',resetIdleTimer);
+document.addEventListener('touchstart',resetIdleTimer);
+resetIdleTimer();
+
+// ====== WAVEFORM ======
+const wfCanvas=document.getElementById('waveform-canvas');
+const wfCtx=wfCanvas.getContext('2d');
+let isAiSpeaking=false,wfPhase=0;
+function resizeWf(){wfCanvas.width=wfCanvas.offsetWidth||300;wfCanvas.height=wfCanvas.offsetHeight||60;}
+setTimeout(resizeWf,80);
+function drawWaveform(){
+    requestAnimationFrame(drawWaveform);
+    const w=wfCanvas.width,h=wfCanvas.height;
+    wfPhase+=isAiSpeaking?0.08:0.025;
+    wfCtx.clearRect(0,0,w,h);
+    const layers=[
+        {amp:isAiSpeaking?14+Math.random()*10:3.5, freq:0.022, phOff:0,   lw:2,   alpha:isAiSpeaking?0.75:0.35},
+        {amp:isAiSpeaking?9+Math.random()*7:2,     freq:0.036, phOff:1.2, lw:1.5, alpha:isAiSpeaking?0.45:0.18},
+        {amp:isAiSpeaking?5+Math.random()*5:1.2,   freq:0.055, phOff:2.5, lw:1,   alpha:isAiSpeaking?0.22:0.09},
+    ];
+    layers.forEach(l=>{
+        // gradient fill under curve
+        wfCtx.beginPath();
+        for(let x=0;x<=w;x++){
+            const y=h/2+Math.sin(x*l.freq+wfPhase+l.phOff)*l.amp;
+            x===0?wfCtx.moveTo(x,y):wfCtx.lineTo(x,y);
+        }
+        wfCtx.lineTo(w,h/2);wfCtx.lineTo(0,h/2);wfCtx.closePath();
+        const fg=wfCtx.createLinearGradient(0,h/2-l.amp*2,0,h/2);
+        fg.addColorStop(0,`rgba(244,114,182,${l.alpha*0.35})`);
+        fg.addColorStop(1,'rgba(244,114,182,0)');
+        wfCtx.fillStyle=fg;wfCtx.fill();
+        // stroke on top
+        wfCtx.beginPath();
+        for(let x=0;x<=w;x++){
+            const y=h/2+Math.sin(x*l.freq+wfPhase+l.phOff)*l.amp;
+            x===0?wfCtx.moveTo(x,y):wfCtx.lineTo(x,y);
+        }
+        wfCtx.strokeStyle=`rgba(244,114,182,${l.alpha})`;
+        wfCtx.lineWidth=l.lw;
+        wfCtx.shadowColor='rgba(244,114,182,0.6)';
+        wfCtx.shadowBlur=isAiSpeaking?10:3;
+        wfCtx.stroke();
+        wfCtx.shadowBlur=0;
+    });
+}
+drawWaveform();
+
+// ====== CHAT ======
+const chatArea=document.getElementById('chat-area');
+const chatInput=document.getElementById('chat-input');
+const sendBtn=document.getElementById('send-btn');
+const statusTxt=document.getElementById('status-text');
+let history=[];
+
+function addMsg(role,html){
+    const div=document.createElement('div');
+    div.className=`msg msg-${role}`;
+    const label=role==='user'?'อ้ายโดม':'YUMIN';
+    div.innerHTML=`<div class="msg-label">${label}</div>${html}`;
+    chatArea.appendChild(div);
+    chatArea.scrollTop=chatArea.scrollHeight;
+}
+function addError(msg){
+    const div=document.createElement('div');div.className='msg-error';div.textContent='⚠ '+msg;
+    chatArea.appendChild(div);chatArea.scrollTop=chatArea.scrollHeight;
+}
+function showTyping(){
+    const div=document.createElement('div');div.className='typing-wrap';div.id='typing';
+    div.innerHTML='<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+    chatArea.appendChild(div);chatArea.scrollTop=chatArea.scrollHeight;
+}
+function removeTyping(){const t=document.getElementById('typing');if(t)t.remove();}
+function setStatus(txt,online=true){
+    statusTxt.textContent=txt;
+    const dot=document.querySelector('.status-dot');
+    dot.style.background=online?'#f472b6':'#f59e0b';
+    dot.style.boxShadow=online?'0 0 7px #f472b6':'0 0 7px #f59e0b';
+}
+
+async function sendMessage(){
+    const text=chatInput.value.trim();
+    if(!text||sendBtn.disabled)return;
+    chatInput.value='';sendBtn.disabled=true;
+
+    const imgHtml=attachedImage
+        ?`<img src="data:${attachedImage.mimeType};base64,${attachedImage.base64}" style="max-width:100%;border-radius:6px;margin-bottom:6px;display:block;border:1px solid rgba(244,114,182,0.2)"><br>`:'';
+    addMsg('user',imgHtml+text);
+
+    let content;
+    if(attachedImage){
+        content=[
+            {type:'image',source:{type:'base64',media_type:attachedImage.mimeType,data:attachedImage.base64}},
+            {type:'text',text}
+        ];
+    } else { content=text; }
+    history.push({role:'user',content});
+    clearImage();
+
+    showTyping();isAiSpeaking=true;
+    setAvatarState('happy');
+    setTimeout(()=>{if(avatarState==='happy')setAvatarState('normal');},2500);
+    setStatus('YUMIN กำลังคิดอยู่เน้อ...♥',false);
+
+    try{
+        const res=await fetch('https://api.anthropic.com/v1/messages',{
+            method:'POST',
+            headers:{
+                'content-type':'application/json',
+                'x-api-key':API_KEY,
+                'anthropic-version':'2023-06-01',
+                'anthropic-dangerous-direct-browser-access':'true'
+            },
+            body:JSON.stringify({
+                model:CLAUDE_MODEL,
+                max_tokens:1024,
+                system:SYSTEM_PROMPT,
+                messages:history
+            })
+        });
+        if(!res.ok){const e=await res.json();throw new Error(e.error?.message||`HTTP ${res.status}`);}
+        const data=await res.json();
+        const reply=data.content?.[0]?.text??'ยูมินตอบไม่ได้ในตอนนี้เน้อ...';
+        history.push({role:'assistant',content:reply});
+        removeTyping();
+        addMsg('yumin',reply.replace(/\n/g,'<br>'));
+    } catch(err){
+        history.pop();
+        removeTyping();
+        addError('ระบบขัดข้องเน้อ อ้ายโดม: '+err.message);
+        setAvatarState('sad');
+        setTimeout(()=>setAvatarState('normal'),3000);
+    }
+    isAiSpeaking=false;
+    setStatus('YUMIN ONLINE — พร้อมคุยแล้วเน้อ ♥',true);
+    sendBtn.disabled=false;chatInput.focus();
+    saveChatsToStorage();
+}
+
+// ====== IMAGE ATTACH ======
+let attachedImage=null;
+function compressImage(file, callback){
+    const reader=new FileReader();
+    reader.onload=ev=>{
+        const img=new Image();
+        img.onload=()=>{
+            const MAX=1600, canvas=document.createElement('canvas');
+            let w=img.width, h=img.height;
+            if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}
+            canvas.width=w; canvas.height=h;
+            canvas.getContext('2d').drawImage(img,0,0,w,h);
+            const quality=0.82;
+            const dataUrl=canvas.toDataURL('image/jpeg',quality);
+            callback(dataUrl.split(',')[1],'image/jpeg',file.name);
+        };
+        img.src=ev.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+document.getElementById('file-input').addEventListener('change',e=>{
+    const file=e.target.files[0];if(!file)return;
+    compressImage(file,(base64,mimeType,name)=>{
+        attachedImage={base64,mimeType,name};
+        document.getElementById('img-thumb').src='data:'+mimeType+';base64,'+base64;
+        document.getElementById('img-name').textContent=name;
+        document.getElementById('img-preview').classList.add('show');
+        document.getElementById('attach-btn').classList.add('has-img');
+    });
+    e.target.value='';
+});
+function clearImage(){
+    attachedImage=null;
+    document.getElementById('img-preview').classList.remove('show');
+    document.getElementById('attach-btn').classList.remove('has-img');
+    document.getElementById('img-thumb').src='';
+}
+
+// ====== MULTI-CHAT ======
+let chats=JSON.parse(localStorage.getItem('yumin_chats')||'null')||[{id:1,name:'แชท 1',history:[],html:''}];
+let activeChatId=parseInt(localStorage.getItem('yumin_active_chat')||'1');
+
+function saveChatsToStorage(){
+    const cur=chats.find(c=>c.id===activeChatId);
+    if(cur){cur.html=chatArea.innerHTML;cur.history=history;}
+    try{localStorage.setItem('yumin_chats',JSON.stringify(chats));localStorage.setItem('yumin_active_chat',activeChatId);}catch(e){}
+}
+function loadChat(id){
+    const cur=chats.find(c=>c.id===activeChatId);
+    if(cur){cur.html=chatArea.innerHTML;cur.history=history;}
+    activeChatId=id;
+    const target=chats.find(c=>c.id===id);if(!target)return;
+    chatArea.innerHTML=target.html||`<div class="msg msg-yumin"><div class="msg-label">YUMIN</div>อ้ายโดม~ ยูมินออนไลน์แล้วเน้อ 💕✨<br>วันนี้จะให้ยูมินช่วยอะหยังเจ้า?</div>`;
+    history=target.history||[];
+    localStorage.setItem('yumin_active_chat',activeChatId);
+    renderChatList();
+}
+function createNewChat(){
+    const newId=Date.now(),newName=`แชท ${chats.length+1}`;
+    chats.push({id:newId,name:newName,history:[],html:''});
+    saveChatsToStorage();loadChat(newId);
+}
+function deleteChat(id,e){
+    e.stopPropagation();if(chats.length===1)return;
+    chats=chats.filter(c=>c.id!==id);saveChatsToStorage();
+    if(activeChatId===id)loadChat(chats[0].id);else renderChatList();
+}
+function renameChat(id,e){
+    e.stopPropagation();const chat=chats.find(c=>c.id===id);if(!chat)return;
+    const newName=prompt('ตั้งชื่อแชทใหม่:',chat.name);
+    if(newName&&newName.trim()){chat.name=newName.trim();saveChatsToStorage();renderChatList();}
+}
+function renderChatList(){
+    const overlay=document.getElementById('chat-list-overlay');
+    const listHtml=chats.map(c=>{
+        const preview=c.history.length>0?(c.history[c.history.length-1]?.content||'').toString().slice(0,40)+'...':'ยังไม่มีข้อความ';
+        return `<div class="chat-item${c.id===activeChatId?' active':''}" onclick="loadChat(${c.id});toggleChatList()">
+            <div class="chat-item-info"><div class="chat-item-name">${c.name}</div><div class="chat-item-preview">${preview}</div></div>
+            <div class="chat-item-actions">
+                <button class="chat-action-btn" onclick="renameChat(${c.id},event)">✏</button>
+                <button class="chat-action-btn del" onclick="deleteChat(${c.id},event)">🗑</button>
+            </div></div>`;
+    }).join('');
+    overlay.innerHTML=`
+        <div class="chat-list-header"><span class="chat-list-title">💬 CHATS</span><button class="chat-list-close" onclick="toggleChatList()">✕</button></div>
+        <div class="chat-list-body">${listHtml}</div>
+        <div class="chat-list-footer"><button class="new-chat-btn" onclick="createNewChat();toggleChatList()">＋ แชทใหม่</button></div>`;
+}
+function toggleChatList(){
+    const overlay=document.getElementById('chat-list-overlay');
+    if(overlay.classList.contains('show')){overlay.classList.remove('show');}
+    else{renderChatList();overlay.classList.add('show');}
+}
+(function initChats(){
+    const saved=JSON.parse(localStorage.getItem('yumin_chats')||'null');
+    if(saved)chats=saved;
+    const savedActive=parseInt(localStorage.getItem('yumin_active_chat')||'0');
+    const target=chats.find(c=>c.id===savedActive)||chats[0];
+    if(target.html){chatArea.innerHTML=target.html;history=target.history||[];activeChatId=target.id;}
+})();
+
+function goToTools(){
+    try{saveChatsToStorage();}catch(e){}
+    window.location.href='yumin_tools_v1.html';
+}
+
+sendBtn.addEventListener('click',sendMessage);
+chatInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
+chatArea.addEventListener('scroll',()=>{
+    const btn=document.getElementById('scroll-btn');
+    const isBottom=chatArea.scrollHeight-chatArea.scrollTop-chatArea.clientHeight<60;
+    btn.classList.toggle('show',!isBottom);
+});
+function scrollToBottom(){chatArea.scrollTo({top:chatArea.scrollHeight,behavior:'smooth'});}
+
+// ====== THEME LOADER (default = pink) ======
+(function(){
+    const THEMES={blue:{r:125,g:211,b:252,r2:186,g2:230,b2:253},yellow:{r:253,g:224,b:71,r2:254,g2:240,b2:138},green:{r:134,g:239,b:172,r2:187,g2:247,b2:208},pink:{r:249,g:168,b:212,r2:251,g2:207,b2:232}};
+    const name=localStorage.getItem('nari_theme')||'pink';
+    if(name==='pink') return; // pink คือ default ของยูมิน
+    const t=THEMES[name];if(!t)return;
+    const h=`${t.r},${t.g},${t.b}`,h2=`${t.r2},${t.g2},${t.b2}`;
+    const s=document.createElement('style');s.id='nari-theme';
+    s.textContent=`.main-frame{border-color:rgba(${h},0.35)!important;}.corner{border-color:rgba(${h},0.7)!important;}.sys-title{color:rgb(${h2})!important;text-shadow:0 0 12px rgba(${h},0.9)!important;}.sys-sub{color:rgba(${h},0.45)!important;}.header{border-color:rgba(${h},0.15)!important;}.nav-btn{border-color:rgba(${h},0.35)!important;color:rgba(${h},0.8)!important;}.model-label{border-color:rgba(${h},0.28)!important;color:rgba(${h},0.9)!important;}.status-text{color:rgba(${h},0.45)!important;}.msg-user{background:rgba(${h},0.1)!important;border-color:rgba(${h},0.22)!important;}.chat-input{border-color:rgba(${h},0.22)!important;}.send-btn{background:rgba(${h},0.1)!important;border-color:rgba(${h},0.3)!important;}.attach-btn{border-color:rgba(${h},0.25)!important;}.chat-sel-btn{border-color:rgba(${h},0.22)!important;}.new-chat-btn{border-color:rgba(${h},0.3)!important;}.chat-item{border-color:rgba(${h},0.18)!important;}.chat-item-name{color:rgb(${h2})!important;}.chat-list-title{color:rgb(${h2})!important;}#waveform-canvas{border-color:rgba(${h},0.18)!important;}`;
+    document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>

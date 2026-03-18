@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Yumin System — Welcome</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html { overflow:hidden; }
+        body {
+            background:#020812; color:#f9a8d4;
+            font-family:'Courier New',monospace;
+            display:flex; justify-content:center; align-items:center;
+            width:100vw; min-height:100vh; min-height:100dvh; overflow:hidden;
+        }
+        .main-frame {
+            position:relative; z-index:1;
+            width:100vw; max-width:400px;
+            height:100vh; height:100dvh; max-height:700px;
+            background:rgba(2,8,20,0.88);
+            border:1px solid rgba(244,114,182,0.35);
+            border-radius:14px; display:flex; flex-direction:column;
+            overflow:hidden;
+            box-shadow:0 0 40px rgba(244,114,182,0.1),0 0 80px rgba(244,114,182,0.04);
+        }
+        #frame-bg { position:absolute; inset:0; z-index:0; border-radius:14px; }
+        .corner { position:absolute; width:18px; height:18px; border-color:rgba(244,114,182,0.7); border-style:solid; z-index:10; }
+        .c-tl{top:8px;left:8px;border-width:2px 0 0 2px;border-radius:3px 0 0 0}
+        .c-tr{top:8px;right:8px;border-width:2px 2px 0 0;border-radius:0 3px 0 0}
+        .c-bl{bottom:8px;left:8px;border-width:0 0 2px 2px;border-radius:0 0 0 3px}
+        .c-br{bottom:8px;right:8px;border-width:0 2px 2px 0;border-radius:0 0 3px 0}
+        .scanline {
+            position:absolute; inset:0; pointer-events:none; z-index:9; border-radius:14px;
+            background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(244,114,182,0.012) 3px,rgba(244,114,182,0.012) 4px);
+        }
+
+        /* CONTENT */
+        .content {
+            position:relative; z-index:2;
+            flex:1; display:flex; flex-direction:column;
+            align-items:center; padding:20px 28px 18px;
+        }
+
+        /* TOP */
+        .sys-title {
+            font-size:26px; font-weight:bold; letter-spacing:6px; color:#fbcfe8;
+            text-shadow:0 0 16px rgba(244,114,182,0.9),0 0 32px rgba(244,114,182,0.4);
+            margin-bottom:2px;
+        }
+        .sys-sub { font-size:11px; color:rgba(244,114,182,0.75); letter-spacing:3px; margin-bottom:12px; }
+
+        /* AVATAR */
+        .avatar-wrap {
+            position:relative; width:86px; height:86px; margin-bottom:8px;
+            animation:float 3s ease-in-out infinite;
+        }
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+        .avatar-ring {
+            position:absolute; inset:-5px; border-radius:50%;
+            border:2px solid transparent;
+            border-top-color:rgba(244,114,182,0.75);
+            border-right-color:rgba(216,180,254,0.3);
+            animation:spin 3s linear infinite;
+        }
+        @keyframes spin{to{transform:rotate(360deg)}}
+        #welcome-avatar {
+            width:86px; height:86px; border-radius:50%;
+            position:relative; z-index:1; display:block;
+            filter:drop-shadow(0 0 8px rgba(244,114,182,0.55));
+        }
+        .avatar-label {
+            font-size:12px; letter-spacing:2px; margin-bottom:12px;
+            transition:color 0.4s;
+        }
+        .divider {
+            width:100%; height:1px; margin-bottom:16px;
+            background:linear-gradient(to right,transparent,rgba(244,114,182,0.35),transparent);
+        }
+
+        /* PHASE CONTAINER */
+        .phase-wrap { position:relative; width:100%; flex:1; }
+
+        /* ===== PIN PHASE ===== */
+        .pin-phase {
+            position:absolute; inset:0;
+            display:flex; flex-direction:column; align-items:center;
+            transition:opacity 0.35s ease, transform 0.35s ease;
+        }
+        .pin-phase.out {
+            opacity:0; transform:translateY(-16px); pointer-events:none;
+        }
+        .pin-title {
+            font-size:13px; color:rgba(244,114,182,0.85); letter-spacing:2.5px;
+            margin-bottom:14px;
+        }
+        .pin-dots { display:flex; gap:16px; margin-bottom:18px; }
+        .pin-dot {
+            width:13px; height:13px; border-radius:50%;
+            border:2px solid rgba(244,114,182,0.35);
+            background:transparent; transition:all 0.2s;
+        }
+        .pin-dot.filled {
+            background:#f472b6; border-color:#f472b6;
+            box-shadow:0 0 10px rgba(244,114,182,0.75);
+        }
+        .pin-dot.error { background:#fca5a5; border-color:#f87171; box-shadow:0 0 8px rgba(239,68,68,0.6); }
+        @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+        .pin-dots.shake { animation:shake 0.35s ease; }
+
+        /* PIN PAD */
+        .pin-pad { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; width:100%; }
+        .pin-key {
+            height:56px; border-radius:10px;
+            border:1px solid rgba(244,114,182,0.22);
+            background:rgba(244,114,182,0.05);
+            color:#fbcfe8; font-family:'Courier New',monospace;
+            font-size:16px; font-weight:bold;
+            cursor:pointer; transition:all 0.15s;
+            display:flex; align-items:center; justify-content:center;
+            box-shadow:inset 0 0 10px rgba(244,114,182,0.03);
+            user-select:none; -webkit-tap-highlight-color:transparent;
+        }
+        .pin-key:hover { background:rgba(244,114,182,0.13); border-color:rgba(244,114,182,0.45); box-shadow:0 0 12px rgba(244,114,182,0.18); }
+        .pin-key:active { transform:scale(0.91); background:rgba(244,114,182,0.22); }
+        .pin-key.del { font-size:17px; color:rgba(244,114,182,0.78); }
+        .pin-key.zero { grid-column:2; }
+        .pin-key.blank { visibility:hidden; pointer-events:none; }
+        .pin-error {
+            font-size:12px; color:#fca5a5; letter-spacing:1.5px;
+            margin-top:11px; opacity:0; transition:opacity 0.25s;
+            text-align:center;
+        }
+        .pin-error.show { opacity:1; }
+
+        /* ===== API PHASE ===== */
+        .api-phase {
+            position:absolute; inset:0;
+            display:flex; flex-direction:column; gap:11px;
+            opacity:0; transform:translateY(16px); pointer-events:none;
+            transition:opacity 0.35s ease, transform 0.35s ease;
+        }
+        .api-phase.in { opacity:1; transform:translateY(0); pointer-events:all; }
+        .api-label { font-size:13px; color:rgba(244,114,182,0.88); letter-spacing:2px; }
+        .api-desc {
+            font-size:12px; color:rgba(244,114,182,0.65); line-height:1.7;
+            letter-spacing:0.5px;
+        }
+        .key-input-wrap { position:relative; width:100%; }
+        .key-input {
+            width:100%; background:rgba(244,114,182,0.05);
+            border:1px solid rgba(244,114,182,0.28); border-radius:8px;
+            color:#fce7f3; font-family:'Courier New',monospace; font-size:13px;
+            padding:13px 44px 13px 14px; outline:none;
+            transition:border-color 0.2s,box-shadow 0.2s;
+        }
+        .key-input:focus { border-color:rgba(244,114,182,0.65); box-shadow:0 0 14px rgba(244,114,182,0.12); }
+        .key-input::placeholder { color:rgba(244,114,182,0.5); font-size:12px; }
+        .toggle-eye {
+            position:absolute; right:12px; top:50%; transform:translateY(-50%);
+            cursor:pointer; font-size:16px; color:rgba(244,114,182,0.68);
+            transition:color 0.2s; background:none; border:none;
+            display:flex; align-items:center;
+        }
+        .toggle-eye:hover { color:#f9a8d4; }
+        .enter-btn {
+            width:100%; padding:14px;
+            background:linear-gradient(135deg,rgba(244,114,182,0.15),rgba(216,180,254,0.1));
+            border:1px solid rgba(244,114,182,0.48); border-radius:8px;
+            color:#fbcfe8; font-family:'Courier New',monospace;
+            font-size:15px; font-weight:bold; letter-spacing:3px;
+            cursor:pointer; transition:all 0.22s;
+            box-shadow:0 0 10px rgba(244,114,182,0.12), inset 0 0 10px rgba(244,114,182,0.04);
+        }
+        .enter-btn:hover {
+            background:linear-gradient(135deg,rgba(244,114,182,0.28),rgba(216,180,254,0.18));
+            box-shadow:0 0 22px rgba(244,114,182,0.35);
+            border-color:rgba(244,114,182,0.7);
+        }
+        .enter-btn:active { transform:scale(0.98); }
+        .error-msg { font-size:12px; color:#fca5a5; text-align:center; opacity:0; transition:opacity 0.3s; letter-spacing:1px; }
+        .error-msg.show { opacity:1; }
+        .back-pin {
+            background:none; border:none; color:rgba(244,114,182,0.5);
+            font-family:'Courier New',monospace; font-size:11px; letter-spacing:1.5px;
+            cursor:pointer; transition:color 0.2s; text-align:center; padding:4px;
+        }
+        .back-pin:hover { color:rgba(244,114,182,0.85); }
+
+        /* UNLOCK FLASH */
+        @keyframes unlockFlash{0%{box-shadow:0 0 40px rgba(244,114,182,0.1)}50%{box-shadow:0 0 70px rgba(244,114,182,0.5),0 0 120px rgba(244,114,182,0.2)}100%{box-shadow:0 0 40px rgba(244,114,182,0.1)}}
+        .main-frame.unlocked { animation:unlockFlash 0.55s ease; }
+    </style>
+</head>
+<body>
+<div class="main-frame" id="main-frame">
+    <canvas id="frame-bg"></canvas>
+    <div class="corner c-tl"></div><div class="corner c-tr"></div>
+    <div class="corner c-bl"></div><div class="corner c-br"></div>
+    <div class="scanline"></div>
+    <div class="content">
+
+        <div class="sys-title">YUMIN SYSTEM</div>
+        <div class="sys-sub">CLAUDE INTERFACE · v1.0</div>
+
+        <div class="avatar-wrap">
+            <div class="avatar-ring"></div>
+            <canvas id="welcome-avatar" width="100" height="100"></canvas>
+        </div>
+        <div class="avatar-label" id="avatar-label" style="color:rgba(244,114,182,0.85)">YUMIN · ONLINE</div>
+
+        <div class="divider"></div>
+
+        <div class="phase-wrap">
+            <!-- PIN PHASE -->
+            <div class="pin-phase" id="pin-phase">
+                <div class="pin-title">ENTER PIN TO UNLOCK</div>
+                <div class="pin-dots" id="pin-dots">
+                    <div class="pin-dot" id="d0"></div>
+                    <div class="pin-dot" id="d1"></div>
+                    <div class="pin-dot" id="d2"></div>
+                    <div class="pin-dot" id="d3"></div>
+                </div>
+                <div class="pin-pad">
+                    <button class="pin-key" onclick="pinPress('1')">1</button>
+                    <button class="pin-key" onclick="pinPress('2')">2</button>
+                    <button class="pin-key" onclick="pinPress('3')">3</button>
+                    <button class="pin-key" onclick="pinPress('4')">4</button>
+                    <button class="pin-key" onclick="pinPress('5')">5</button>
+                    <button class="pin-key" onclick="pinPress('6')">6</button>
+                    <button class="pin-key" onclick="pinPress('7')">7</button>
+                    <button class="pin-key" onclick="pinPress('8')">8</button>
+                    <button class="pin-key" onclick="pinPress('9')">9</button>
+                    <button class="pin-key blank"></button>
+                    <button class="pin-key zero" onclick="pinPress('0')">0</button>
+                    <button class="pin-key del" onclick="pinDel()">⌫</button>
+                </div>
+                <div class="pin-error" id="pin-error">รหัสไม่ถูกต้องเน้อ ลองอีกทีเจ้า ♥</div>
+            </div>
+
+            <!-- API PHASE -->
+            <div class="api-phase" id="api-phase">
+                <div class="api-label">ANTHROPIC API KEY</div>
+                <div class="api-desc">ยูมินรอพี่โดมอยู่เน้อ~<br>กรอก API Key เพื่อเริ่มใช้งานเจ้า 💕</div>
+                <div class="key-input-wrap">
+                    <input class="key-input" id="api-key-input" type="password"
+                        placeholder="วางหรือพิมพ์ API Key ที่นี่..."
+                        autocomplete="off" spellcheck="false">
+                    <button class="toggle-eye" id="toggle-eye" onclick="toggleEye()">👁</button>
+                </div>
+                <div class="error-msg" id="error-msg">⚠ กรุณากรอก API Key ก่อนเน้อ</div>
+                <button class="enter-btn" onclick="enterSystem()">➤ ENTER SYSTEM</button>
+                <button class="back-pin" onclick="backToPin()">← กลับไปใส่ PIN</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// ====== BACKGROUND ======
+const fb=document.getElementById('frame-bg'),fc=fb.getContext('2d');
+fb.width=400;fb.height=700;
+class Streak{constructor(){this.spawn();}spawn(){this.dir=Math.floor(Math.random()*4);this.speed=0.8+Math.random()*1.5;this.len=60+Math.random()*100;this.alpha=0.08+Math.random()*0.15;this.lw=0.5+Math.random()*0.9;if(this.dir===0){this.x=-this.len;this.y=Math.random()*700;this.vx=this.speed;this.vy=0;}else if(this.dir===1){this.x=Math.random()*400;this.y=-this.len;this.vx=0;this.vy=this.speed;}else if(this.dir===2){this.x=-this.len;this.y=Math.random()*420;this.vx=this.speed;this.vy=this.speed*0.45;}else{this.x=-this.len;this.y=280+Math.random()*420;this.vx=this.speed;this.vy=-this.speed*0.45;}}isOff(){return this.x>500||this.y>800||this.y<-200;}update(){this.x+=this.vx;this.y+=this.vy;}draw(ctx){const st=this.len/this.speed,tx=this.x-this.vx*st,ty=this.y-this.vy*st;const g=ctx.createLinearGradient(tx,ty,this.x,this.y);g.addColorStop(0,'rgba(244,114,182,0)');g.addColorStop(0.6,`rgba(249,168,212,${this.alpha*0.5})`);g.addColorStop(1,`rgba(251,207,232,${this.alpha})`);ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(this.x,this.y);ctx.strokeStyle=g;ctx.lineWidth=this.lw;ctx.shadowColor='rgba(244,114,182,0.5)';ctx.shadowBlur=5;ctx.stroke();ctx.shadowBlur=0;ctx.beginPath();ctx.arc(this.x,this.y,this.lw*1.8,0,Math.PI*2);ctx.fillStyle=`rgba(251,207,232,${this.alpha})`;ctx.fill();}}
+class Orb{constructor(){this.x=40+Math.random()*320;this.y=70+Math.random()*560;this.vx=(Math.random()-0.5)*0.6;this.vy=(Math.random()-0.5)*0.6;this.r=25+Math.random()*35;this.phase=Math.random()*Math.PI*2;this.ps=0.018+Math.random()*0.022;this.alpha=0.1+Math.random()*0.14;}update(){this.x+=this.vx;this.y+=this.vy;this.phase+=this.ps;if(this.x<0||this.x>400)this.vx*=-1;if(this.y<0||this.y>700)this.vy*=-1;}draw(ctx){const r=this.r*(1+Math.sin(this.phase)*0.28);const g=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,r);g.addColorStop(0,`rgba(249,168,212,${this.alpha*0.9})`);g.addColorStop(0.35,`rgba(244,114,182,${this.alpha*0.5})`);g.addColorStop(1,'rgba(244,114,182,0)');ctx.beginPath();ctx.arc(this.x,this.y,r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();}}
+const streaks=Array.from({length:14},()=>new Streak());
+const orbs=Array.from({length:6},()=>new Orb());
+(function bgLoop(){fc.fillStyle='rgba(2,8,20,0.18)';fc.fillRect(0,0,400,700);for(let i=0;i<orbs.length;i++)for(let j=i+1;j<orbs.length;j++){const dx=orbs[i].x-orbs[j].x,dy=orbs[i].y-orbs[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<200){fc.beginPath();fc.moveTo(orbs[i].x,orbs[i].y);fc.lineTo(orbs[j].x,orbs[j].y);fc.strokeStyle=`rgba(244,114,182,${(1-d/200)*0.1})`;fc.lineWidth=0.6;fc.stroke();}}orbs.forEach(o=>{o.update();o.draw(fc);});streaks.forEach((s,i)=>{s.update();s.draw(fc);if(s.isOff())streaks[i]=new Streak();});requestAnimationFrame(bgLoop);})();
+
+// ====== AVATAR ======
+const ac=document.getElementById('welcome-avatar').getContext('2d');
+let avatarState='normal',blinking=false;
+function drawWelcomeYumin(){
+    const ctx=ac;ctx.clearRect(0,0,100,100);
+    const bg=ctx.createRadialGradient(50,45,4,50,50,52);
+    bg.addColorStop(0,'rgba(244,114,182,0.2)');bg.addColorStop(1,'rgba(2,8,20,0.92)');
+    ctx.beginPath();ctx.arc(50,50,50,0,Math.PI*2);ctx.fillStyle=bg;ctx.fill();
+    ctx.fillStyle='#93c5fd';ctx.beginPath();ctx.ellipse(50,93,26,16,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#FFF5F7';ctx.beginPath();ctx.ellipse(50,90,15,12,0,0,Math.PI*2);ctx.fill();
+    ctx.font='7px Arial';ctx.textAlign='center';ctx.fillStyle='#f472b6';ctx.fillText('♥',50,94);
+    ctx.beginPath();ctx.arc(50,74,2,0,Math.PI*2);ctx.fillStyle='#c4b5fd';ctx.fill();
+    ctx.fillStyle='#f472b6';ctx.beginPath();ctx.ellipse(24,52,9,22,-0.1,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(76,52,9,22,0.1,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(50,47,27,25,0,0,Math.PI*2);ctx.fillStyle='#FDDBB4';ctx.fill();
+    ctx.fillStyle='#f472b6';
+    ctx.beginPath();ctx.ellipse(50,28,28,14,0,Math.PI,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(50,34,26,11,0,Math.PI*0.85,Math.PI*2.15);ctx.fill();
+    ctx.beginPath();ctx.ellipse(23,57,5,12,-0.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(77,57,5,12,0.2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#f472b6';ctx.beginPath();ctx.ellipse(28,26,10,10,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(72,26,10,10,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#f9a8d4';ctx.beginPath();ctx.ellipse(26,23,5,5,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(74,23,5,5,0,0,Math.PI*2);ctx.fill();
+    ctx.font='9px Arial';ctx.textAlign='center';
+    ctx.fillStyle='#fce7f3';ctx.fillText('♥',28,30);ctx.fillStyle='#bfdbfe';ctx.fillText('♥',72,30);
+
+    if(avatarState==='normal'){
+        if(blinking){ctx.strokeStyle='#7c3f1e';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(33,47);ctx.quadraticCurveTo(41,51,49,47);ctx.stroke();ctx.beginPath();ctx.moveTo(51,47);ctx.quadraticCurveTo(59,51,67,47);ctx.stroke();}
+        else{_eye(ctx,41,47);_eye(ctx,59,47);}
+        _blush(ctx,0.22);
+        ctx.beginPath();ctx.arc(50,58,5,0.15,Math.PI-0.15);ctx.strokeStyle='#C97E7E';ctx.lineWidth=1.5;ctx.stroke();
+    } else if(avatarState==='happy'){
+        ctx.strokeStyle='#7c3f1e';ctx.lineWidth=2.2;
+        ctx.beginPath();ctx.arc(41,49,6,Math.PI*1.1,Math.PI*1.9);ctx.stroke();
+        ctx.beginPath();ctx.arc(59,49,6,Math.PI*1.1,Math.PI*1.9);ctx.stroke();
+        ctx.beginPath();ctx.arc(50,55,8,0.1,Math.PI-0.1);ctx.strokeStyle='#C97E7E';ctx.lineWidth=2;ctx.stroke();
+        _blush(ctx,0.45);
+    } else if(avatarState==='sad'){
+        _eye(ctx,41,48);_eye(ctx,59,48);
+        ctx.strokeStyle='#7c3f1e';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(35,38);ctx.quadraticCurveTo(41,35,47,38);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(53,38);ctx.quadraticCurveTo(59,35,65,38);ctx.stroke();
+        ctx.beginPath();ctx.arc(50,63,5,Math.PI*1.15,Math.PI*1.85);ctx.strokeStyle='#C97E7E';ctx.lineWidth=1.5;ctx.stroke();
+        ctx.fillStyle='rgba(186,230,253,0.75)';
+        ctx.beginPath();ctx.ellipse(39,56,2.5,5,0.2,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.ellipse(61,56,2.5,5,-0.2,0,Math.PI*2);ctx.fill();
+    }
+    requestAnimationFrame(drawWelcomeYumin);
+}
+function _eye(ctx,cx,cy){ctx.beginPath();ctx.ellipse(cx,cy,6,7,0,0,Math.PI*2);ctx.fillStyle='#FFFFFF';ctx.fill();ctx.beginPath();ctx.ellipse(cx,cy+1,4,5,0,0,Math.PI*2);ctx.fillStyle='#8B4513';ctx.fill();ctx.beginPath();ctx.ellipse(cx+0.5,cy-0.5,2,2.5,0,0,Math.PI*2);ctx.fillStyle='#4a2c0a';ctx.fill();ctx.beginPath();ctx.arc(cx-1.5,cy-2,1.2,0,Math.PI*2);ctx.fillStyle='#FFFFFF';ctx.fill();ctx.beginPath();ctx.arc(cx+2,cy-1,0.7,0,Math.PI*2);ctx.fillStyle='#FFFFFF';ctx.fill();}
+function _blush(ctx,a){ctx.fillStyle=`rgba(255,140,140,${a})`;ctx.beginPath();ctx.ellipse(33,54,8,4,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(67,54,8,4,0,0,Math.PI*2);ctx.fill();}
+drawWelcomeYumin();
+(function scheduleBlink(){setTimeout(()=>{blinking=true;setTimeout(()=>{blinking=false;scheduleBlink();},150);},5000+Math.random()*10000);})();
+
+// ====== PIN LOGIC ======
+const CORRECT_PIN='1551';
+let pinInput='';
+
+function pinPress(digit){
+    if(pinInput.length>=4)return;
+    pinInput+=digit;
+    updateDots();
+    if(pinInput.length===4) setTimeout(checkPin,120);
+}
+function pinDel(){
+    if(!pinInput.length)return;
+    pinInput=pinInput.slice(0,-1);
+    updateDots();
+}
+function updateDots(){
+    for(let i=0;i<4;i++){
+        const d=document.getElementById('d'+i);
+        d.classList.toggle('filled',i<pinInput.length);
+        d.classList.remove('error');
+    }
+}
+function checkPin(){
+    if(pinInput===CORRECT_PIN){
+        pinCorrect();
+    } else {
+        pinWrong();
+    }
+}
+function pinCorrect(){
+    avatarState='happy';
+    document.getElementById('avatar-label').style.color='#f472b6';
+    document.getElementById('avatar-label').textContent='YUMIN · ยินดีต้อนรับเน้อ ♥';
+    document.getElementById('main-frame').classList.add('unlocked');
+    setTimeout(()=>{
+        document.getElementById('pin-phase').classList.add('out');
+        document.getElementById('api-phase').classList.add('in');
+        setTimeout(()=>{document.getElementById('api-key-input').focus();},350);
+        setTimeout(()=>{avatarState='normal';},2500);
+        document.getElementById('avatar-label').style.color='rgba(244,114,182,0.85)';
+        document.getElementById('avatar-label').textContent='YUMIN · ONLINE';
+    },550);
+}
+function pinWrong(){
+    avatarState='sad';
+    for(let i=0;i<4;i++) document.getElementById('d'+i).classList.add('error');
+    const dots=document.getElementById('pin-dots');
+    dots.classList.add('shake');
+    document.getElementById('pin-error').classList.add('show');
+    setTimeout(()=>{
+        dots.classList.remove('shake');
+        document.getElementById('pin-error').classList.remove('show');
+        for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.remove('error','filled');}
+        pinInput='';
+        avatarState='normal';
+    },1400);
+}
+function backToPin(){
+    document.getElementById('api-phase').classList.remove('in');
+    document.getElementById('pin-phase').classList.remove('out');
+    pinInput='';updateDots();
+}
+
+// keyboard support for PIN
+document.addEventListener('keydown',e=>{
+    const apiPhase=document.getElementById('api-phase');
+    if(apiPhase.classList.contains('in'))return;
+    if(e.key>='0'&&e.key<='9') pinPress(e.key);
+    else if(e.key==='Backspace') pinDel();
+});
+
+// ====== API KEY INPUT ======
+let showKey=false;
+function toggleEye(){
+    showKey=!showKey;
+    document.getElementById('api-key-input').type=showKey?'text':'password';
+    document.getElementById('toggle-eye').textContent=showKey?'🙈':'👁';
+}
+function enterSystem(){
+    const key=document.getElementById('api-key-input').value.trim();
+    const err=document.getElementById('error-msg');
+    if(!key){err.classList.add('show');setTimeout(()=>err.classList.remove('show'),2500);return;}
+    sessionStorage.setItem('yumin_claude_key',key);
+    window.location.href='yumin_system_v1.html';
+}
+document.getElementById('api-key-input').addEventListener('keydown',e=>{
+    if(e.key==='Enter') enterSystem();
+});
+
+// ====== THEME LOADER ======
+(function(){
+    const THEMES={blue:{r:125,g:211,b:252,r2:186,g2:230,b2:253},yellow:{r:253,g:224,b:71,r2:254,g2:240,b2:138},green:{r:134,g:239,b:172,r2:187,g2:247,b2:208},pink:{r:249,g:168,b:212,r2:251,g2:207,b2:232}};
+    const name=localStorage.getItem('nari_theme')||'pink';
+    if(name==='pink')return;
+    const t=THEMES[name];if(!t)return;
+    const h=`${t.r},${t.g},${t.b}`,h2=`${t.r2},${t.g2},${t.b2}`;
+    const s=document.createElement('style');
+    s.textContent=`.main-frame{border-color:rgba(${h},0.35)!important;}.corner{border-color:rgba(${h},0.7)!important;}.sys-title{color:rgb(${h2})!important;text-shadow:0 0 16px rgba(${h},0.9)!important;}.pin-key{border-color:rgba(${h},0.22)!important;background:rgba(${h},0.05)!important;color:rgb(${h2})!important;}.pin-dot{border-color:rgba(${h},0.35)!important;}.pin-dot.filled{background:rgba(${h},1)!important;border-color:rgba(${h},1)!important;box-shadow:0 0 10px rgba(${h},0.75)!important;}.enter-btn{border-color:rgba(${h},0.48)!important;}.key-input{border-color:rgba(${h},0.28)!important;}.avatar-ring{border-top-color:rgba(${h},0.75)!important;}`;
+    document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>
