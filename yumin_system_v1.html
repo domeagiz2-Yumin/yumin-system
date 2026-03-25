@@ -103,7 +103,44 @@
             position: absolute; top: 0; left: 0;
             will-change: transform;
         }
-        #sleep-canvas {
+        /* ZzZ animation */
+        .zzz-wrap {
+            position: absolute; top: 4px; right: 18px;
+            display: flex; flex-direction: column; align-items: center;
+            pointer-events: none;
+        }
+        /* ZzZ บน avatar หลัก (pre-sleep) */
+        .av-zzz-wrap {
+            position: absolute; top: 0px; right: 12px;
+            display: none; flex-direction: column; align-items: center;
+            pointer-events: none; z-index: 10;
+        }
+        .av-zzz-wrap.show { display: flex; }
+        .zzz-z {
+            font-family: 'Courier New', monospace; font-weight: bold;
+            color: #f9a8d4; text-shadow: 0 0 8px rgba(244,114,182,0.7);
+            opacity: 0; animation: floatZ 3s ease-in-out infinite;
+            line-height: 1;
+        }
+        .zzz-z.z1 { font-size: 10px; animation-delay: 0s; }
+        .zzz-z.z2 { font-size: 14px; animation-delay: 1s; }
+        .zzz-z.z3 { font-size: 19px; animation-delay: 2s; }
+        @keyframes floatZ {
+            0%   { opacity: 0; transform: translateY(0); }
+            15%  { opacity: 0.9; }
+            85%  { opacity: 0.7; }
+            100% { opacity: 0; transform: translateY(-32px); }
+        }
+        /* Talk badge */
+        .av-talk-badge {
+            position: absolute; top: 0px; right: -4px;
+            font-size: 20px; opacity: 0; pointer-events: none;
+            transition: opacity 0.25s ease; z-index: 10;
+            filter: drop-shadow(0 0 4px rgba(244,114,182,0.5));
+        }
+        .av-talk-badge.show { opacity: 1; animation: badgePop 0.3s ease; }
+        @keyframes badgePop { from { transform: scale(0); } to { transform: scale(1); } }
+        #sleep-img {
             width: 130px; height: 130px; border-radius: 50%;
             border: 2px solid rgba(244,114,182,0.28);
             box-shadow: 0 0 24px rgba(244,114,182,0.25), 0 0 50px rgba(244,114,182,0.08);
@@ -169,7 +206,10 @@
         .pw-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
         .profile-wrap { position: relative; width: 100px; height: 100px; flex-shrink: 0; animation: float 3s ease-in-out infinite; }
         @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-        #avatar-canvas { width: 100px; height: 100px; border-radius: 50%; position: relative; z-index: 1; filter: drop-shadow(0 0 8px rgba(244,114,182,0.55)); }
+        .yumin-av-wrap { position: relative; width: 100px; height: 100px; border-radius: 50%; overflow: hidden; filter: drop-shadow(0 0 8px rgba(244,114,182,0.55)); }
+        .yumin-av-img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; opacity: 0; transition: opacity 0.25s ease; transform: scale(1.3); }
+        .yumin-av-img.active { opacity: 1; }
+        #clock-canvas { width: 100px; height: 100px; border-radius: 50%; position: relative; z-index: 1; filter: drop-shadow(0 0 8px rgba(244,114,182,0.55)); display: none; }
         .profile-ring {
             position: absolute; inset: -4px; border-radius: 50%;
             border: 2px solid transparent;
@@ -183,7 +223,7 @@
             animation: spin 5s linear infinite reverse;
         }
         @keyframes spin{to{transform:rotate(360deg)}}
-        #waveform-canvas { flex: 1; min-width: 0; width: 0; height: 100px; border: 1px solid rgba(244,114,182,0.18); border-radius: 7px; background: rgba(244,114,182,0.02); }
+        #waveform-canvas { flex: 1; height: 100px; border: 1px solid rgba(244,114,182,0.18); border-radius: 7px; background: rgba(244,114,182,0.02); }
         .chat-sel-btn {
             width: 44px; height: 100px; background: rgba(244,114,182,0.07);
             border: 1px solid rgba(244,114,182,0.22); border-radius: 7px;
@@ -194,7 +234,7 @@
         .chat-sel-btn .icon{font-size:18px} .chat-sel-btn .lbl{font-size:8px;letter-spacing:1px;color:rgba(244,114,182,0.75)}
         .input-row { display: flex; gap: 8px; align-items: center; }
         .chat-input {
-            flex: 1; min-width: 0; background: rgba(244,114,182,0.05); border: 1px solid rgba(244,114,182,0.22);
+            flex: 1; background: rgba(244,114,182,0.05); border: 1px solid rgba(244,114,182,0.22);
             color: #fce7f3; font-family: 'Courier New',monospace; font-size: 16px;
             padding: 14px 16px; border-radius: 7px; outline: none; transition: border-color 0.2s,box-shadow 0.2s;
         }
@@ -241,6 +281,31 @@
         .img-preview-name{font-size:11px;color:rgba(216,180,254,0.7);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .img-preview-del{cursor:pointer;color:rgba(216,180,254,0.6);font-size:14px;background:none;border:none;padding:2px 4px}
         .msg-error { align-self: flex-start; color: #fca5a5; font-size: 12px; padding: 8px 12px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 7px; animation: fadeIn 0.25s ease; }
+
+        /* ===== EFFECTS ===== */
+        :root { --theme-rgb: 244,114,182; }
+
+        /* Yumin message glow */
+        .msg-yumin { animation: yuminMsgIn 0.45s ease; }
+        @keyframes yuminMsgIn {
+            from { opacity:0; transform:translateY(6px); box-shadow:0 0 22px rgba(var(--theme-rgb),0.5); }
+            60%  { box-shadow:0 0 12px rgba(var(--theme-rgb),0.25); }
+            to   { opacity:1; transform:translateY(0); box-shadow:none; }
+        }
+        /* Screen edge flash */
+        .main-frame.yumin-reply { animation: edgeFlash 0.7s ease; }
+        @keyframes edgeFlash {
+            0%   { box-shadow:0 0 40px rgba(var(--theme-rgb),0.1),0 0 80px rgba(var(--theme-rgb),0.04),inset 0 0 40px rgba(var(--theme-rgb),0.02); }
+            25%  { box-shadow:0 0 75px rgba(var(--theme-rgb),0.65),0 0 150px rgba(var(--theme-rgb),0.28),inset 0 0 60px rgba(var(--theme-rgb),0.08); }
+            100% { box-shadow:0 0 40px rgba(var(--theme-rgb),0.1),0 0 80px rgba(var(--theme-rgb),0.04),inset 0 0 40px rgba(var(--theme-rgb),0.02); }
+        }
+        /* Heartbeat ring */
+        .profile-ring.thinking { animation: heartbeat 1s ease-in-out infinite !important; }
+        @keyframes heartbeat {
+            0%,100% { transform:scale(1); }
+            20%     { transform:scale(1.22); filter:drop-shadow(0 0 7px rgba(var(--theme-rgb),0.9)); }
+            50%     { transform:scale(1.06); }
+        }
     </style>
 </head>
 <body>
@@ -281,7 +346,12 @@
         </div>
         <div class="sleep-overlay" id="sleep-overlay">
             <div class="sleep-yumin-wrap" id="sleep-yumin-wrap">
-                <canvas id="sleep-canvas" width="100" height="100"></canvas>
+                <img id="sleep-img" src="กระพริบตาและนอนหลับ.png">
+                <div class="zzz-wrap">
+                    <span class="zzz-z z1">z</span>
+                    <span class="zzz-z z2">Z</span>
+                    <span class="zzz-z z3">Z</span>
+                </div>
             </div>
         </div>
     </div>
@@ -295,7 +365,19 @@
             <div class="profile-wrap">
                 <div class="profile-ring"></div>
                 <div class="profile-ring-2"></div>
-                <canvas id="avatar-canvas" width="100" height="100"></canvas>
+                <div class="yumin-av-wrap" id="yumin-av-wrap">
+                    <img class="yumin-av-img active" id="av-normal" src="ปกติ.png">
+                    <img class="yumin-av-img" id="av-talk" src="พูดคุย.png">
+                    <img class="yumin-av-img" id="av-sad" src="ผิดปกติ.png">
+                    <img class="yumin-av-img" id="av-blink" src="กระพริบตาและนอนหลับ.png">
+                </div>
+                <canvas id="clock-canvas" width="100" height="100"></canvas>
+                <div class="av-talk-badge" id="av-talk-badge">😊</div>
+                <div class="av-zzz-wrap" id="av-zzz-wrap">
+                    <span class="zzz-z z1">z</span>
+                    <span class="zzz-z z2">Z</span>
+                    <span class="zzz-z z3">Z</span>
+                </div>
             </div>
             <canvas id="waveform-canvas"></canvas>
             <button class="chat-sel-btn" onclick="toggleChatList()">
@@ -410,13 +492,44 @@ function drawBg(){
 drawBg();
 
 // ====== YUMIN AVATAR ======
-const avatarCanvas = document.getElementById('avatar-canvas');
-const avatarCtx = avatarCanvas.getContext('2d');
 let avatarState = 'normal';
-let idleTimer = null;
-let zAnim = 0;
-let isBlinking = false;
 
+const AV_MAP = { normal: 'av-normal', happy: 'av-talk', sad: 'av-sad' };
+const AV_AURA = {
+    normal:  'drop-shadow(0 0 8px rgba(244,114,182,0.55))',
+    happy:   'drop-shadow(0 0 16px rgba(244,114,182,0.95)) drop-shadow(0 0 28px rgba(216,180,254,0.55))',
+    sad:     'drop-shadow(0 0 12px rgba(147,197,253,0.75))',
+};
+function setAvatarState(s) {
+    avatarState = s;
+    document.querySelectorAll('.yumin-av-img').forEach(img => img.classList.remove('active'));
+    const id = AV_MAP[s] || 'av-normal';
+    document.getElementById(id)?.classList.add('active');
+    const wrap = document.getElementById('yumin-av-wrap');
+    if (wrap) wrap.style.filter = AV_AURA[s] || AV_AURA.normal;
+    const badge = document.getElementById('av-talk-badge');
+    if (s === 'happy') badge.classList.add('show');
+    else badge.classList.remove('show');
+}
+function scheduleBlink() {
+    setTimeout(() => {
+        if (avatarState === 'normal' && !sleepMode && !preSleepMode) {
+            const blinkImg = document.getElementById('av-blink');
+            const normalImg = document.getElementById('av-normal');
+            normalImg.classList.remove('active');
+            blinkImg.classList.add('active');
+            const dur = 150 + Math.random() * 100;
+            setTimeout(() => {
+                blinkImg.classList.remove('active');
+                normalImg.classList.add('active');
+            }, dur);
+        }
+        scheduleBlink();
+    }, 5000 + Math.random() * 5000);
+}
+scheduleBlink();
+
+// ====== DUMMY (ไม่ใช้แล้ว — เก็บไว้กันโค้ดเก่า reference) ======
 function drawYumin(state, targetCtx) {
     const ctx = targetCtx || avatarCtx;
     ctx.clearRect(0, 0, 100, 100);
@@ -522,24 +635,20 @@ function _drawYBlush(ctx,alpha){
     ctx.beginPath();ctx.ellipse(32,54,8,4,0,0,Math.PI*2);ctx.fill();
     ctx.beginPath();ctx.ellipse(68,54,8,4,0,0,Math.PI*2);ctx.fill();
 }
-function setAvatarState(s){avatarState=s;}
-function scheduleBlink(){
-    setTimeout(()=>{
-        if(avatarState==='normal'&&!sleepMode){isBlinking=true;setTimeout(()=>{isBlinking=false;},150);}
-        scheduleBlink();
-    },5000+Math.random()*10000);
-}
-scheduleBlink();
+// setAvatarState และ scheduleBlink ย้ายไปด้านบนแล้ว (image-based)
 
 // ====== SLEEP MODE ======
 let sleepMode=false;
+let preSleepMode=false;
 let sleepTimer=null;
-const sleepCanvas=document.getElementById('sleep-canvas');
-const sleepCtx=sleepCanvas.getContext('2d');
-const SLEEP_TIMEOUT=3*60*1000; // 3 นาที
+let preSleepTimer=null;
+const clockCanvas=document.getElementById('clock-canvas');
+const clockCtx=clockCanvas.getContext('2d');
+const PRE_SLEEP_TIMEOUT=1.5*60*1000; // 1.5 นาที
+const SLEEP_TIMEOUT=3*60*1000;       // 3 นาที
 
 function drawClock(){
-    const ctx=avatarCtx;
+    const ctx=clockCtx;
     ctx.clearRect(0,0,100,100);
     const bg=ctx.createRadialGradient(50,45,3,50,50,52);
     bg.addColorStop(0,'rgba(244,114,182,0.18)');bg.addColorStop(1,'rgba(2,8,20,0.95)');
@@ -565,11 +674,22 @@ function drawClock(){
 let sleepX=0,sleepY=0,sleepVX=1.4,sleepVY=1.1;
 const SLEEP_SIZE=130;
 
+function activatePreSleep(){
+    preSleepMode=true;
+    document.querySelectorAll('.yumin-av-img').forEach(img=>img.classList.remove('active'));
+    document.getElementById('av-blink')?.classList.add('active');
+    avatarState='presleep';
+    document.getElementById('av-zzz-wrap').classList.add('show');
+    document.getElementById('av-talk-badge').classList.remove('show');
+}
 function activateSleep(){
+    preSleepMode=false;
     sleepMode=true;
-    setAvatarState('sleep');
+    document.getElementById('av-zzz-wrap').classList.remove('show');
     const overlay=document.getElementById('sleep-overlay');
     overlay.classList.add('show');
+    document.getElementById('yumin-av-wrap').style.display='none';
+    clockCanvas.style.display='block';
     const ow=overlay.clientWidth||370;
     const oh=overlay.clientHeight||320;
     sleepX=Math.random()*(ow-SLEEP_SIZE);
@@ -578,28 +698,32 @@ function activateSleep(){
     sleepVY=(Math.random()>0.5?1:-1)*(0.45+Math.random()*0.2);
 }
 function wakeUp(){
-    if(!sleepMode)return;
+    if(!sleepMode&&!preSleepMode)return;
     sleepMode=false;
+    preSleepMode=false;
+    document.getElementById('av-zzz-wrap').classList.remove('show');
     document.getElementById('sleep-overlay').classList.remove('show');
+    document.getElementById('yumin-av-wrap').style.display='';
+    clockCanvas.style.display='none';
     setAvatarState('normal');
     resetSleepTimer();
 }
 function resetSleepTimer(){
+    if(preSleepTimer)clearTimeout(preSleepTimer);
     if(sleepTimer)clearTimeout(sleepTimer);
+    preSleepTimer=setTimeout(activatePreSleep,PRE_SLEEP_TIMEOUT);
     sleepTimer=setTimeout(activateSleep,SLEEP_TIMEOUT);
 }
 
-function avatarLoop(){
-    requestAnimationFrame(avatarLoop);
-    if(sleepMode){drawClock();}
-    else{drawYumin(avatarState);}
+function clockLoop(){
+    requestAnimationFrame(clockLoop);
+    if(sleepMode) drawClock();
 }
-avatarLoop();
+clockLoop();
 
-function sleepCanvasLoop(){
-    requestAnimationFrame(sleepCanvasLoop);
+function sleepBounceLoop(){
+    requestAnimationFrame(sleepBounceLoop);
     if(!sleepMode)return;
-    drawYumin('sleep',sleepCtx);
     const overlay=document.getElementById('sleep-overlay');
     const ow=overlay.clientWidth||370;
     const oh=overlay.clientHeight||320;
@@ -612,13 +736,10 @@ function sleepCanvasLoop(){
     if(sleepY>=oh-SLEEP_SIZE){sleepY=oh-SLEEP_SIZE;sleepVY=-(Math.abs(sleepVY)+nudge());}
     document.getElementById('sleep-yumin-wrap').style.transform=`translate(${sleepX}px,${sleepY}px)`;
 }
-sleepCanvasLoop();
+sleepBounceLoop();
 
 function resetIdleTimer(){
-    if(idleTimer)clearTimeout(idleTimer);
-    if(sleepMode){wakeUp();return;}
-    if(avatarState==='sleep')setAvatarState('normal');
-    idleTimer=setTimeout(()=>setAvatarState('sleep'),60000);
+    if(sleepMode||preSleepMode){wakeUp();return;}
     resetSleepTimer();
 }
 document.addEventListener('click',resetIdleTimer);
@@ -630,6 +751,7 @@ resetIdleTimer();
 const wfCanvas=document.getElementById('waveform-canvas');
 const wfCtx=wfCanvas.getContext('2d');
 let isAiSpeaking=false,wfPhase=0;
+let wfColor='244,114,182'; // อัพเดทตาม theme
 function resizeWf(){wfCanvas.width=wfCanvas.offsetWidth||300;wfCanvas.height=wfCanvas.offsetHeight||60;}
 setTimeout(resizeWf,80);
 function drawWaveform(){
@@ -651,8 +773,8 @@ function drawWaveform(){
         }
         wfCtx.lineTo(w,h/2);wfCtx.lineTo(0,h/2);wfCtx.closePath();
         const fg=wfCtx.createLinearGradient(0,h/2-l.amp*2,0,h/2);
-        fg.addColorStop(0,`rgba(244,114,182,${l.alpha*0.35})`);
-        fg.addColorStop(1,'rgba(244,114,182,0)');
+        fg.addColorStop(0,`rgba(${wfColor},${l.alpha*0.35})`);
+        fg.addColorStop(1,`rgba(${wfColor},0)`);
         wfCtx.fillStyle=fg;wfCtx.fill();
         // stroke on top
         wfCtx.beginPath();
@@ -660,9 +782,9 @@ function drawWaveform(){
             const y=h/2+Math.sin(x*l.freq+wfPhase+l.phOff)*l.amp;
             x===0?wfCtx.moveTo(x,y):wfCtx.lineTo(x,y);
         }
-        wfCtx.strokeStyle=`rgba(244,114,182,${l.alpha})`;
+        wfCtx.strokeStyle=`rgba(${wfColor},${l.alpha})`;
         wfCtx.lineWidth=l.lw;
-        wfCtx.shadowColor='rgba(244,114,182,0.6)';
+        wfCtx.shadowColor=`rgba(${wfColor},0.6)`;
         wfCtx.shadowBlur=isAiSpeaking?10:3;
         wfCtx.stroke();
         wfCtx.shadowBlur=0;
@@ -684,6 +806,11 @@ function addMsg(role,html){
     div.innerHTML=`<div class="msg-label">${label}</div>${html}`;
     chatArea.appendChild(div);
     chatArea.scrollTop=chatArea.scrollHeight;
+    if(role==='yumin'){
+        const frame=document.querySelector('.main-frame');
+        frame.classList.add('yumin-reply');
+        setTimeout(()=>frame.classList.remove('yumin-reply'),700);
+    }
 }
 function addError(msg){
     const div=document.createElement('div');div.className='msg-error';div.textContent='⚠ '+msg;
@@ -724,6 +851,7 @@ async function sendMessage(){
     showTyping();isAiSpeaking=true;
     setAvatarState('happy');
     setTimeout(()=>{if(avatarState==='happy')setAvatarState('normal');},2500);
+    document.querySelector('.profile-ring')?.classList.add('thinking');
     setStatus('YUMIN กำลังคิดอยู่เน้อ...♥',false);
 
     try{
@@ -756,6 +884,7 @@ async function sendMessage(){
         setTimeout(()=>setAvatarState('normal'),3000);
     }
     isAiSpeaking=false;
+    document.querySelector('.profile-ring')?.classList.remove('thinking');
     setStatus('YUMIN ONLINE — พร้อมคุยแล้วเน้อ ♥',true);
     sendBtn.disabled=false;chatInput.focus();
     saveChatsToStorage();
@@ -883,6 +1012,8 @@ function scrollToBottom(){chatArea.scrollTo({top:chatArea.scrollHeight,behavior:
     if(name==='pink') return; // pink คือ default ของยูมิน
     const t=THEMES[name];if(!t)return;
     const h=`${t.r},${t.g},${t.b}`,h2=`${t.r2},${t.g2},${t.b2}`;
+    wfColor=h;
+    document.documentElement.style.setProperty('--theme-rgb',h);
     const s=document.createElement('style');s.id='nari-theme';
     s.textContent=`.main-frame{border-color:rgba(${h},0.35)!important;}.corner{border-color:rgba(${h},0.7)!important;}.sys-title{color:rgb(${h2})!important;text-shadow:0 0 12px rgba(${h},0.9)!important;}.sys-sub{color:rgba(${h},0.45)!important;}.header{border-color:rgba(${h},0.15)!important;}.nav-btn{border-color:rgba(${h},0.35)!important;color:rgba(${h},0.8)!important;}.model-label{border-color:rgba(${h},0.28)!important;color:rgba(${h},0.9)!important;}.status-text{color:rgba(${h},0.45)!important;}.msg-user{background:rgba(${h},0.1)!important;border-color:rgba(${h},0.22)!important;}.chat-input{border-color:rgba(${h},0.22)!important;}.send-btn{background:rgba(${h},0.1)!important;border-color:rgba(${h},0.3)!important;}.attach-btn{border-color:rgba(${h},0.25)!important;}.chat-sel-btn{border-color:rgba(${h},0.22)!important;}.new-chat-btn{border-color:rgba(${h},0.3)!important;}.chat-item{border-color:rgba(${h},0.18)!important;}.chat-item-name{color:rgb(${h2})!important;}.chat-list-title{color:rgb(${h2})!important;}#waveform-canvas{border-color:rgba(${h},0.18)!important;}`;
     document.head.appendChild(s);

@@ -63,11 +63,18 @@
             animation:spin 3s linear infinite;
         }
         @keyframes spin{to{transform:rotate(360deg)}}
-        #welcome-avatar {
-            width:86px; height:86px; border-radius:50%;
-            position:relative; z-index:1; display:block;
+        #welcome-av-wrap {
+            width:86px; height:86px; border-radius:50%; overflow:hidden;
+            position:relative; z-index:1;
             filter:drop-shadow(0 0 8px rgba(244,114,182,0.55));
         }
+        .welcome-av-img {
+            position:absolute; inset:0; width:100%; height:100%;
+            border-radius:50%; object-fit:cover;
+            opacity:0; transition:opacity 0.25s ease;
+            transform: scale(1.3);
+        }
+        .welcome-av-img.active { opacity:1; }
         .avatar-label {
             font-size:12px; letter-spacing:2px; margin-bottom:12px;
             transition:color 0.4s;
@@ -204,7 +211,12 @@
 
         <div class="avatar-wrap">
             <div class="avatar-ring"></div>
-            <canvas id="welcome-avatar" width="100" height="100"></canvas>
+            <div id="welcome-av-wrap">
+                <img class="welcome-av-img active" id="wi-normal" src="ปกติ.png">
+                <img class="welcome-av-img" id="wi-talk" src="พูดคุย.png">
+                <img class="welcome-av-img" id="wi-sad" src="ผิดปกติ.png">
+                <img class="welcome-av-img" id="wi-blink" src="กระพริบตาและนอนหลับ.png">
+            </div>
         </div>
         <div class="avatar-label" id="avatar-label" style="color:rgba(244,114,182,0.85)">YUMIN · ONLINE</div>
 
@@ -266,9 +278,27 @@ const streaks=Array.from({length:14},()=>new Streak());
 const orbs=Array.from({length:6},()=>new Orb());
 (function bgLoop(){fc.fillStyle='rgba(2,8,20,0.18)';fc.fillRect(0,0,400,700);for(let i=0;i<orbs.length;i++)for(let j=i+1;j<orbs.length;j++){const dx=orbs[i].x-orbs[j].x,dy=orbs[i].y-orbs[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<200){fc.beginPath();fc.moveTo(orbs[i].x,orbs[i].y);fc.lineTo(orbs[j].x,orbs[j].y);fc.strokeStyle=`rgba(244,114,182,${(1-d/200)*0.1})`;fc.lineWidth=0.6;fc.stroke();}}orbs.forEach(o=>{o.update();o.draw(fc);});streaks.forEach((s,i)=>{s.update();s.draw(fc);if(s.isOff())streaks[i]=new Streak();});requestAnimationFrame(bgLoop);})();
 
-// ====== AVATAR ======
-const ac=document.getElementById('welcome-avatar').getContext('2d');
-let avatarState='normal',blinking=false;
+// ====== AVATAR (image-based) ======
+const WI_MAP={normal:'wi-normal',happy:'wi-talk',sad:'wi-sad'};
+function setWelcomeAvatar(state){
+    document.querySelectorAll('.welcome-av-img').forEach(img=>img.classList.remove('active'));
+    document.getElementById(WI_MAP[state]||'wi-normal')?.classList.add('active');
+}
+(function scheduleBlink(){
+    setTimeout(()=>{
+        const normal=document.getElementById('wi-normal');
+        const blink=document.getElementById('wi-blink');
+        if(normal.classList.contains('active')){
+            normal.classList.remove('active');
+            blink.classList.add('active');
+            const dur=150+Math.random()*100;
+            setTimeout(()=>{blink.classList.remove('active');normal.classList.add('active');},dur);
+        }
+        scheduleBlink();
+    },5000+Math.random()*5000);
+})();
+
+// ====== AVATAR CANVAS (ลบออก — ใช้รูปแทน) ======
 function drawWelcomeYumin(){
     const ctx=ac;ctx.clearRect(0,0,100,100);
     const bg=ctx.createRadialGradient(50,45,4,50,50,52);
@@ -318,8 +348,7 @@ function drawWelcomeYumin(){
 }
 function _eye(ctx,cx,cy){ctx.beginPath();ctx.ellipse(cx,cy,6,7,0,0,Math.PI*2);ctx.fillStyle='#FFFFFF';ctx.fill();ctx.beginPath();ctx.ellipse(cx,cy+1,4,5,0,0,Math.PI*2);ctx.fillStyle='#8B4513';ctx.fill();ctx.beginPath();ctx.ellipse(cx+0.5,cy-0.5,2,2.5,0,0,Math.PI*2);ctx.fillStyle='#4a2c0a';ctx.fill();ctx.beginPath();ctx.arc(cx-1.5,cy-2,1.2,0,Math.PI*2);ctx.fillStyle='#FFFFFF';ctx.fill();ctx.beginPath();ctx.arc(cx+2,cy-1,0.7,0,Math.PI*2);ctx.fillStyle='#FFFFFF';ctx.fill();}
 function _blush(ctx,a){ctx.fillStyle=`rgba(255,140,140,${a})`;ctx.beginPath();ctx.ellipse(33,54,8,4,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(67,54,8,4,0,0,Math.PI*2);ctx.fill();}
-drawWelcomeYumin();
-(function scheduleBlink(){setTimeout(()=>{blinking=true;setTimeout(()=>{blinking=false;scheduleBlink();},150);},5000+Math.random()*10000);})();
+// drawWelcomeYumin และ scheduleBlink เก่าถูกแทนด้วย image-based ด้านบนแล้ว
 
 // ====== PIN LOGIC ======
 const CORRECT_PIN='1551';
@@ -351,7 +380,7 @@ function checkPin(){
     }
 }
 function pinCorrect(){
-    avatarState='happy';
+    setWelcomeAvatar('happy');
     document.getElementById('avatar-label').style.color='#f472b6';
     document.getElementById('avatar-label').textContent='YUMIN · ยินดีต้อนรับเน้อ ♥';
     document.getElementById('main-frame').classList.add('unlocked');
@@ -359,13 +388,13 @@ function pinCorrect(){
         document.getElementById('pin-phase').classList.add('out');
         document.getElementById('api-phase').classList.add('in');
         setTimeout(()=>{document.getElementById('api-key-input').focus();},350);
-        setTimeout(()=>{avatarState='normal';},2500);
+        setTimeout(()=>{setWelcomeAvatar('normal');},2500);
         document.getElementById('avatar-label').style.color='rgba(244,114,182,0.85)';
         document.getElementById('avatar-label').textContent='YUMIN · ONLINE';
     },550);
 }
 function pinWrong(){
-    avatarState='sad';
+    setWelcomeAvatar('sad');
     for(let i=0;i<4;i++) document.getElementById('d'+i).classList.add('error');
     const dots=document.getElementById('pin-dots');
     dots.classList.add('shake');
@@ -375,7 +404,7 @@ function pinWrong(){
         document.getElementById('pin-error').classList.remove('show');
         for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.remove('error','filled');}
         pinInput='';
-        avatarState='normal';
+        setWelcomeAvatar('normal');
     },1400);
 }
 function backToPin(){
