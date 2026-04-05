@@ -47,6 +47,13 @@
             cursor:pointer; color:#f9a8d4; font-size:22px; background:transparent; transition:all 0.2s;
         }
         .back-btn:hover { background:rgba(244,114,182,0.12); }
+        .sound-btn {
+            width:42px; height:42px; border:1px solid rgba(244,114,182,0.35);
+            border-radius:7px; display:flex; align-items:center; justify-content:center;
+            cursor:pointer; font-size:20px; background:transparent; transition:all 0.2s;
+        }
+        .sound-btn:hover { background:rgba(244,114,182,0.12); }
+        .sound-btn.muted { opacity:0.38; filter:grayscale(1); }
         .hdr-mid { display:flex; flex-direction:column; align-items:center; gap:2px; }
         @keyframes titleColorPlay{
             0%,100%{color:#fbcfe8;text-shadow:0 0 10px rgba(244,114,182,0.9),0 0 24px rgba(244,114,182,0.45),0 0 48px rgba(244,114,182,0.15);}
@@ -364,7 +371,7 @@
             <div class="sys-title" data-text="YUMIN SYSTEM">YUMIN SYSTEM</div>
             <div class="sys-sub">TOOLS &amp; UTILITIES</div>
         </div>
-        <div style="width:42px"></div>
+        <button class="sound-btn" id="sound-btn" onclick="toggleSound()" title="ปิด/เปิดเสียง">🔔</button>
     </div>
 
     <!-- CONTENT -->
@@ -816,6 +823,21 @@ function calcPress(v){
     const disp=calcExpr.replace(/\*/g,'×').replace(/\//g,'÷').replace(/-/g,'−');
     document.getElementById('calc-expr').textContent='';
     document.getElementById('calc-result').textContent=disp||'0';
+}
+
+// ====== SOUND TOGGLE ======
+(function(){
+    const btn=document.getElementById('sound-btn');
+    const muted=localStorage.getItem('yumin_sound_muted')==='true';
+    if(muted){btn.textContent='🔕';btn.classList.add('muted');}
+})();
+function toggleSound(){
+    const btn=document.getElementById('sound-btn');
+    const nowMuted=localStorage.getItem('yumin_sound_muted')==='true';
+    const next=!nowMuted;
+    localStorage.setItem('yumin_sound_muted',next);
+    btn.textContent=next?'🔕':'🔔';
+    next?btn.classList.add('muted'):btn.classList.remove('muted');
 }
 
 // ====== CHANGELOG ======
